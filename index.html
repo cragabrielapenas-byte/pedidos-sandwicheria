@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Pedidos Sandwichería · Amsterdam</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#b8561c">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Sandwichería">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
@@ -45,7 +52,15 @@ h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase
 .chips{display:flex;gap:6px;flex-wrap:wrap}
 .chip{font-weight:600;font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:99px;color:#1d1b17;white-space:nowrap}
 .chip.nuevo{background:var(--nuevo)} .chip.prep{background:var(--prep);color:#fff} .chip.listo{background:var(--listo);color:#fff}
-.sent{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:4px}
+.sent{font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.sline{display:flex;justify-content:space-between;align-items:center;gap:4px 10px;flex-wrap:wrap}
+.acts{display:flex;align-items:center;gap:2px;white-space:nowrap}
+.lnk{border:0;background:none;color:var(--accent);font-weight:600;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.lnk:hover{background:var(--bg)} .lnk.danger{color:var(--danger)}
+.editbox{border:1.5px dashed var(--accent);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px;color:var(--ink)}
+.editt{font-weight:600;font-size:13px;color:var(--accent)}
+.card .mod{align-self:flex-start;background:var(--danger);color:#fff;font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase;padding:4px 10px;border-radius:6px}
+.card .mod.seen{background:var(--tab-card);color:var(--muted);font-size:12px}
 .qtys{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .q{display:flex;flex-direction:column;gap:3px;min-width:0}
 .q label{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -101,7 +116,7 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
 .it b{font-size:42px;min-width:2.2ch;text-align:right}
 .state{margin-top:auto;display:flex;justify-content:space-between;font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .state .st{color:#141310}
-.empty{color:var(--muted);font-size:20px;padding:40px 0;text-align:center}
+.empty{grid-column:1/-1;color:var(--muted);font-size:20px;padding:40px 0;text-align:center}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-weight:600;opacity:0;transition:opacity .2s;pointer-events:none}
 .toast.on{opacity:1}
 </style>
@@ -171,8 +186,8 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TZ = "America/Montevideo";
 const ESTADOS = {nuevo:"Nuevo",prep:"Preparando",listo:"Listo"};
 let clientes=[], productos=[], pedidos=[];        // pedidos = últimos 3 días
-let borradores={}, sec="pedidos", diaHist=0, confirmando=null, nuevoOtro={};
-let sonido=false, ctx=null, conocidos=new Set(), primeraCarga=true;
+let borradores={}, sec="pedidos", diaHist=0, confirmando=null, nuevoOtro={}, editId=null, editDraft={}, borrarId=null;
+let sonido=false, ctx=null, avisados=new Set(), primeraCarga=true;
 
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -189,16 +204,17 @@ async function cargar(){
   const [c,p,o]=await Promise.all([
     sb.from("sw_clientes").select("*").eq("activo",true).order("nombre"),
     sb.from("sw_productos").select("*").eq("activo",true).order("id"),
-    sb.from("sw_pedidos").select("*").gte("fecha_envio",fechaISO(-2)).order("enviado_at"),
+    sb.from("sw_pedidos").select("*").eq("anulado",false).gte("fecha_envio",fechaISO(-2)).order("enviado_at"),
   ]);
   const e=c.error||p.error||o.error;
   if(e){err("No se pudo conectar con la base de datos. Revisá la conexión a internet. ("+e.message+")");return;}
   err("");
   clientes=c.data;productos=p.data;
   // aviso de pedidos nuevos en la tablet
-  const nuevos=o.data.filter(x=>!conocidos.has(x.id));
-  o.data.forEach(x=>conocidos.add(x.id));
-  if(!primeraCarga&&nuevos.length&&modo==="tablet")beep();
+  const firmas=o.data.filter(x=>!x.visto).map(x=>x.id+":"+x.updated_at);
+  const hayAviso=firmas.some(f=>!avisados.has(f));
+  firmas.forEach(f=>avisados.add(f));
+  if(!primeraCarga&&hayAviso&&modo==="tablet")beep();
   primeraCarga=false;
   pedidos=o.data;
   render();
@@ -217,30 +233,58 @@ function renderRec(){
   const hoy=fechaISO(), el=$("rows");
   // conservar foco si el usuario está escribiendo
   if(el.contains(document.activeElement)&&document.activeElement.tagName==="INPUT"){
-    el.addEventListener("focusout",()=>setTimeout(()=>{if(!el.contains(document.activeElement))renderRec();},50),{once:true});return;}
+    el.addEventListener("focusout",()=>setTimeout(()=>{if(!el.contains(document.activeElement))renderRec();},300),{once:true});return;}
   el.innerHTML="";
   if(!clientes.length){el.innerHTML=`<div class="hempty">Todavía no hay clientes. Agregalos en Clientes y productos.</div>`;return;}
+  const campos=(pref,draft,extra=[])=>{
+    const prods=[...productos.map(p=>p.nombre),...extra.filter(n=>!productos.some(p=>p.nombre===n))];
+    return `<div class="qtys">${prods.map((n,i)=>`<div class="q"><label for="${pref}-${i}" title="${esc(n)}">${esc(n)}</label>
+      <input id="${pref}-${i}" type="number" inputmode="numeric" min="0" placeholder="0" value="${draft[n]||""}" data-p="${esc(n)}"></div>`).join("")}</div>`;
+  };
   clientes.forEach(c=>{
     const enviados=pedidos.filter(p=>p.cliente_id===c.id&&p.fecha_envio===hoy);
     const editable=!enviados.length||nuevoOtro[c.id];
     const b=borradores[c.id]||(borradores[c.id]={});
     const row=document.createElement("div");row.className="row";
+    const lineas=enviados.map(p=>{
+      if(editId===p.id) return `<div class="editbox" data-box="${p.id}">
+          <div class="editt">Editando pedido de las ${hora(p.enviado_at)}</div>
+          ${campos("e"+p.id,editDraft,p.items.map(i=>i.producto))}
+          <div class="row-foot"><button class="btn ghost" data-editno>Cancelar</button><button class="btn primary" data-editok="${p.id}">Guardar cambios</button></div>
+        </div>`;
+      return `<div class="sline"><span>Enviado ${hora(p.enviado_at)}${p.modificado?" · editado":""}: ${esc(txtItems(p.items))}</span>
+        <span class="acts">${borrarId===p.id
+          ?`¿Eliminar este pedido? <button class="lnk danger" data-delok="${p.id}">Sí, eliminar</button><button class="lnk" data-delno>No</button>`
+          :`<button class="lnk" data-edit="${p.id}">Editar</button><button class="lnk danger" data-del="${p.id}">Eliminar</button>`}</span></div>`;
+    }).join("");
     row.innerHTML=`<div class="row-head"><span class="cli">${esc(c.nombre)}</span>
       <span class="chips">${enviados.map(p=>`<span class="chip ${p.estado}">${ESTADOS[p.estado]}</span>`).join("")}</span></div>
-      ${enviados.length?`<div class="sent">${enviados.map(p=>`<span>Enviado ${hora(p.enviado_at)}: ${esc(txtItems(p.items))}</span>`).join("")}</div>`:""}
-      ${editable?`<div class="qtys">${productos.map(pr=>`<div class="q"><label for="q${c.id}-${pr.id}" title="${esc(pr.nombre)}">${esc(pr.nombre)}</label>
-        <input id="q${c.id}-${pr.id}" type="number" inputmode="numeric" min="0" placeholder="0" value="${b[pr.nombre]||""}" data-p="${esc(pr.nombre)}"></div>`).join("")}</div>`:""}
+      ${enviados.length?`<div class="sent">${lineas}</div>`:""}
+      ${editable?campos("q"+c.id,b):""}
       <div class="row-foot">${editable
         ?`${nuevoOtro[c.id]?`<button class="btn ghost" data-cancel>Cancelar</button>`:""}<button class="btn primary" data-send>Enviar</button>`
         :`<button class="btn ghost" data-otro>Agregar otro pedido</button>`}</div>`;
+    // nuevo pedido
     const bs=row.querySelector("[data-send]");
     const upd=()=>{if(bs)bs.disabled=!Object.keys(b).length;};
-    row.querySelectorAll("input").forEach(inp=>inp.addEventListener("input",()=>{
+    row.querySelectorAll(`.qtys input[id^="q${c.id}-"]`).forEach(inp=>inp.addEventListener("input",()=>{
       const v=parseInt(inp.value,10);if(v>0)b[inp.dataset.p]=v;else delete b[inp.dataset.p];upd();}));
     upd();
     bs&&bs.addEventListener("click",()=>enviar(c,bs));
     row.querySelector("[data-otro]")?.addEventListener("click",()=>{nuevoOtro[c.id]=true;renderRec();});
     row.querySelector("[data-cancel]")?.addEventListener("click",()=>{nuevoOtro[c.id]=false;borradores[c.id]={};renderRec();});
+    // editar
+    row.querySelectorAll("[data-edit]").forEach(x=>x.onclick=()=>{
+      const p=pedidos.find(q=>q.id===+x.dataset.edit);editId=p.id;borrarId=null;
+      editDraft={};p.items.forEach(i=>editDraft[i.producto]=i.cantidad);renderRec();});
+    row.querySelectorAll(`[data-box] input`).forEach(inp=>inp.addEventListener("input",()=>{
+      const v=parseInt(inp.value,10);if(v>0)editDraft[inp.dataset.p]=v;else delete editDraft[inp.dataset.p];}));
+    row.querySelector("[data-editno]")?.addEventListener("click",()=>{editId=null;document.activeElement?.blur();renderRec();});
+    row.querySelector("[data-editok]")?.addEventListener("click",e=>guardarEdicion(+e.currentTarget.dataset.editok,e.currentTarget));
+    // eliminar
+    row.querySelectorAll("[data-del]").forEach(x=>x.onclick=()=>{borrarId=+x.dataset.del;editId=null;renderRec();});
+    row.querySelector("[data-delno]")?.addEventListener("click",()=>{borrarId=null;renderRec();});
+    row.querySelector("[data-delok]")?.addEventListener("click",e=>eliminar(+e.currentTarget.dataset.delok,e.currentTarget));
     el.appendChild(row);
   });
 }
@@ -253,6 +297,23 @@ async function enviar(c,btn){
   if(error){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent="Enviar";return;}
   borradores[c.id]={};nuevoOtro[c.id]=false;document.activeElement?.blur();
   toast("Enviado: "+c.nombre);cargar();
+}
+async function guardarEdicion(id,btn){
+  const p=pedidos.find(q=>q.id===id);
+  const orden=[...productos.map(x=>x.nombre),...p.items.map(i=>i.producto)];
+  const items=[...new Set(orden)].filter(n=>editDraft[n]).map(n=>({producto:n,cantidad:editDraft[n]}));
+  if(!items.length){toast("El pedido quedó vacío. Si no va, usá Eliminar.");return;}
+  btn.disabled=true;btn.textContent="Guardando…";
+  const {error}=await sb.from("sw_pedidos").update({items,modificado:true,visto:false,estado:p.estado==="listo"?"prep":p.estado,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){toast("No se pudo guardar. Probá de nuevo.");btn.disabled=false;btn.textContent="Guardar cambios";return;}
+  editId=null;document.activeElement?.blur();toast("Pedido actualizado: "+p.cliente);cargar();
+}
+async function eliminar(id,btn){
+  const p=pedidos.find(q=>q.id===id);
+  btn.disabled=true;
+  const {error}=await sb.from("sw_pedidos").update({anulado:true,updated_at:new Date().toISOString()}).eq("id",id);
+  if(error){toast("No se pudo eliminar. Probá de nuevo.");btn.disabled=false;return;}
+  borrarId=null;toast("Pedido eliminado: "+p.cliente);cargar();
 }
 
 function renderHist(){
@@ -315,6 +376,7 @@ function renderTab(){
     const card=document.createElement("button");
     card.className="card "+p.estado+(p.visto?"":" flash");
     card.innerHTML=`${p.fecha_envio!==hoy?`<span class="old">Pendiente del ${new Date(p.fecha_envio+"T12:00").toLocaleDateString("es-UY",{weekday:"long",day:"numeric"})}</span>`:""}
+      ${p.modificado?`<span class="mod${p.visto?" seen":""}">${p.visto?"Editado":"⚠ Modificado"}</span>`:""}
       <h3>${esc(p.cliente)}</h3><div>${p.items.map(i=>`<div class="it"><b>${i.cantidad}</b>${esc(i.producto)}</div>`).join("")}</div>
       <div class="state"><span class="st">● ${ESTADOS[p.estado]}</span><span>${hora(p.enviado_at)}</span></div>`;
     card.onclick=async()=>{
@@ -356,6 +418,8 @@ function render(){
 }
 window.addEventListener("hashchange",aplicarModo);
 aplicarModo();cargar();
+if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))
+  navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
 </body>
 </html>
