@@ -1,6 +1,6 @@
 // Service worker: permite instalar la app y que abra aunque el wifi tarde.
 // Siempre intenta traer la versión nueva de internet; si no hay conexión, usa la guardada.
-const CACHE = "sandwicheria-v2";
+const CACHE = "sandwicheria-v3";
 const ARCHIVOS = ["./", "./index.html", "./manifest.json", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

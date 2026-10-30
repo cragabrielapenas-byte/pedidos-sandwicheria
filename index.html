@@ -95,6 +95,18 @@ h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase
 body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-inset-top))}
 .tab{display:flex;flex-direction:column;gap:18px}
 .tab-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.tab-btns{display:flex;gap:8px;flex-wrap:wrap}
+#btn-listos span{display:inline-block;min-width:1.6em;padding:1px 6px;margin-left:4px;border-radius:99px;background:var(--listo);color:#fff;text-align:center}
+#btn-listos[aria-pressed="true"]{border-color:var(--listo);color:var(--listo)}
+.listos-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.listos-head h2{color:var(--listo)}
+#cards-listos .card{opacity:.75}
+/* Horizontal: más columnas y totales compactos para aprovechar el ancho */
+@media (orientation:landscape){
+  body.tablet .wrap{max-width:none}
+  body.tablet .cards{grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+  body.tablet .tot b{font-size:46px}
+}
 .tab-title{font-family:var(--f-display);font-weight:800;font-size:40px;line-height:1;text-transform:uppercase}
 .tab-title span{display:block;font-size:18px;font-weight:600;color:var(--muted);letter-spacing:.06em;margin-top:4px}
 .sound{background:var(--tab-card);color:#141310;border:1px solid var(--tab-line);border-radius:10px;font-weight:600;font-size:16px;padding:12px 16px;cursor:pointer}
@@ -168,10 +180,20 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
   <div id="view-tab" class="tab" hidden>
     <div class="tab-head">
       <div class="tab-title">Pedidos<span id="tab-date"></span></div>
-      <button class="sound" id="sound" aria-pressed="false">🔈 Activar sonido</button>
+      <div class="tab-btns">
+        <button class="sound" id="btn-listos" aria-pressed="false">✓ Listos de hoy <span id="n-listos">0</span></button>
+        <button class="sound" id="sound" aria-pressed="false">🔈 Activar sonido</button>
+      </div>
     </div>
-    <div><div class="tlabel">Total a preparar</div><div class="totals" id="totals"></div></div>
-    <div class="cards" id="cards"></div>
+    <div id="tab-main">
+      <div class="tlabel">Total a preparar</div><div class="totals" id="totals"></div>
+      <div class="cards" id="cards" style="margin-top:18px"></div>
+    </div>
+    <div id="tab-listos" hidden>
+      <div class="listos-head"><h2>Listos de hoy</h2><button class="sound" id="btn-volver">← Volver a pendientes</button></div>
+      <p class="tlabel" style="margin-top:4px">Si marcaste uno por error, tocalo para devolverlo a Preparando.</p>
+      <div class="cards" id="cards-listos" style="margin-top:12px"></div>
+    </div>
   </div>
 </div>
 <div class="toast" id="toast"></div>
@@ -359,35 +381,49 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
 });
 
 /* ================= TABLET ================= */
+let verListos=false;
+function tarjeta(p,hoy){
+  const card=document.createElement("button");
+  card.className="card "+p.estado+(p.visto?"":" flash");
+  card.innerHTML=`${p.fecha_envio!==hoy?`<span class="old">Pendiente del ${new Date(p.fecha_envio+"T12:00").toLocaleDateString("es-UY",{weekday:"long",day:"numeric"})}</span>`:""}
+    ${p.modificado?`<span class="mod${p.visto?" seen":""}">${p.visto?"Editado":"⚠ Modificado"}</span>`:""}
+    <h3>${esc(p.cliente)}</h3><div>${p.items.map(i=>`<div class="it"><b>${i.cantidad}</b>${esc(i.producto)}</div>`).join("")}</div>
+    <div class="state"><span class="st">● ${ESTADOS[p.estado]}</span><span>${hora(p.enviado_at)}</span></div>`;
+  card.onclick=async()=>{
+    const upd=!p.visto?{visto:true}:{estado:p.estado==="nuevo"?"prep":p.estado==="prep"?"listo":"prep"};
+    Object.assign(p,upd);renderTab();
+    if(upd.estado==="listo")toast("Listo: "+p.cliente);
+    if(upd.estado==="prep"&&verListos)toast("Devuelto a Preparando: "+p.cliente);
+    const {error}=await sb.from("sw_pedidos").update({...upd,updated_at:new Date().toISOString()}).eq("id",p.id);
+    if(error){toast("No se pudo guardar el cambio");cargar();}
+  };
+  return card;
+}
 function renderTab(){
   $("tab-date").textContent=cap(fechaLarga());
   const hoy=fechaISO();
-  // hoy + lo que quedó sin terminar de días anteriores
-  const lista=pedidos.filter(p=>p.fecha_envio===hoy||p.estado!=="listo");
-  const tot={};lista.filter(p=>p.estado!=="listo").forEach(p=>p.items.forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
+  // Pantalla principal: todo lo que no está listo (de hoy o pendiente de días anteriores)
+  const pendientes=pedidos.filter(p=>p.estado!=="listo");
+  // Listos: solo los de hoy (se limpian solos al cambiar el día)
+  const listos=pedidos.filter(p=>p.estado==="listo"&&p.fecha_envio===hoy);
+  $("n-listos").textContent=listos.length;
+  $("tab-main").hidden=verListos;$("tab-listos").hidden=!verListos;
+  $("btn-listos").setAttribute("aria-pressed",verListos);
+  const tot={};pendientes.forEach(p=>p.items.forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
   const keys=Object.keys(tot);
   $("totals").innerHTML=keys.length?keys.map(k=>`<div class="tot"><b>${tot[k]}</b><small>${esc(k)}</small></div>`).join("")
     :`<div class="tot"><b>0</b><small>Nada pendiente</small></div>`;
-  const orden={nuevo:0,prep:1,listo:2};
-  lista.sort((a,b)=>orden[a.estado]-orden[b.estado]||a.enviado_at.localeCompare(b.enviado_at));
+  const orden={nuevo:0,prep:1};
+  pendientes.sort((a,b)=>orden[a.estado]-orden[b.estado]||a.enviado_at.localeCompare(b.enviado_at));
   const el=$("cards");el.innerHTML="";
-  if(!lista.length){el.innerHTML=`<div class="empty">Todavía no llegaron pedidos hoy.</div>`;return;}
-  lista.forEach(p=>{
-    const card=document.createElement("button");
-    card.className="card "+p.estado+(p.visto?"":" flash");
-    card.innerHTML=`${p.fecha_envio!==hoy?`<span class="old">Pendiente del ${new Date(p.fecha_envio+"T12:00").toLocaleDateString("es-UY",{weekday:"long",day:"numeric"})}</span>`:""}
-      ${p.modificado?`<span class="mod${p.visto?" seen":""}">${p.visto?"Editado":"⚠ Modificado"}</span>`:""}
-      <h3>${esc(p.cliente)}</h3><div>${p.items.map(i=>`<div class="it"><b>${i.cantidad}</b>${esc(i.producto)}</div>`).join("")}</div>
-      <div class="state"><span class="st">● ${ESTADOS[p.estado]}</span><span>${hora(p.enviado_at)}</span></div>`;
-    card.onclick=async()=>{
-      const upd=!p.visto?{visto:true}:{estado:p.estado==="nuevo"?"prep":p.estado==="prep"?"listo":"prep"};
-      Object.assign(p,upd);renderTab();
-      const {error}=await sb.from("sw_pedidos").update({...upd,updated_at:new Date().toISOString()}).eq("id",p.id);
-      if(error){toast("No se pudo guardar el cambio");cargar();}
-    };
-    el.appendChild(card);
-  });
+  if(!pendientes.length)el.innerHTML=`<div class="empty">${listos.length?"¡Todo listo! No hay pedidos pendientes.":"Todavía no llegaron pedidos hoy."}</div>`;
+  pendientes.forEach(p=>el.appendChild(tarjeta(p,hoy)));
+  const elL=$("cards-listos");elL.innerHTML="";
+  if(!listos.length)elL.innerHTML=`<div class="empty">Todavía no hay pedidos listos hoy.</div>`;
+  listos.sort((a,b)=>b.updated_at.localeCompare(a.updated_at)).forEach(p=>elL.appendChild(tarjeta(p,hoy)));
 }
+$("btn-listos").onclick=()=>{verListos=!verListos;renderTab();};
+$("btn-volver").onclick=()=>{verListos=false;renderTab();};
 function beep(){
   if(!sonido||!ctx)return;
   [0,.2,.4].forEach(t=>{const o=ctx.createOscillator(),g=ctx.createGain();o.frequency.value=880;o.connect(g);g.connect(ctx.destination);
