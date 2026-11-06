@@ -14,6 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/nosleep.js@0.12.0/dist/NoSleep.min.js"></script>
 <style>
 :root{
   --bg:#f3f1ec; --surface:#fff; --ink:#1d1b17; --muted:#6e685d; --line:#ddd7cb;
@@ -437,8 +438,18 @@ $("sound").onclick=e=>{
   pantallaEncendida();
 };
 let wake=null;
-async function pantallaEncendida(){try{if("wakeLock" in navigator&&!wake){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>wake=null);}}catch(_){}}
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&modo==="tablet")pantallaEncendida();});
+// Mantener la pantalla encendida en la tablet:
+// 1) bloqueo nativo de pantalla (Chrome/Android, Safari 16.4+), 2) respaldo NoSleep (video invisible) para tablets más viejas.
+let noSleep=null;
+async function pantallaEncendida(){
+  if(modo!=="tablet"||document.hidden)return;
+  try{if("wakeLock" in navigator&&!wake){wake=await navigator.wakeLock.request("screen");wake.addEventListener("release",()=>wake=null);return;}}catch(_){}
+  if(!wake){try{noSleep=noSleep||(window.NoSleep?new NoSleep():null);if(noSleep&&!noSleep.isEnabled)await noSleep.enable();}catch(_){}}
+}
+// Cualquier toque en la tablet reactiva el bloqueo (los navegadores lo exigen tras un toque)
+document.addEventListener("pointerdown",pantallaEncendida,{passive:true});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)pantallaEncendida();});
+setInterval(pantallaEncendida,30000);
 
 /* ================= MODO ================= */
 let modo;
@@ -453,7 +464,7 @@ function render(){
   if(sec==="pedidos")renderRec();else if(sec==="hist")renderHist();else renderCfg();
 }
 window.addEventListener("hashchange",aplicarModo);
-aplicarModo();cargar();
+aplicarModo();cargar();pantallaEncendida();
 if("serviceWorker" in navigator&&(location.protocol==="https:"||location.hostname==="localhost"))
   navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
