@@ -89,6 +89,15 @@ h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase
 .add input{flex:1;min-width:0;padding:8px 10px;border:1px solid var(--line);border-radius:8px;text-transform:uppercase}
 .list{list-style:none;margin:10px 0 0;padding:0}
 .list li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-weight:500}
+.list li.cli-item{flex-direction:column;align-items:stretch;gap:8px;padding:10px 0}
+.cli-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.pchips{display:flex;flex-wrap:wrap;gap:6px}
+.pchip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:99px;padding:5px 12px;font-size:13px;font-weight:600;cursor:pointer;user-select:none;background:#fff;color:var(--muted)}
+.pchip input{position:absolute;opacity:0;pointer-events:none}
+.pchip:has(input:checked){background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.pchip:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px}
+.pnote{font-size:12px;color:var(--muted)}
+@media (min-width:700px){.cfg{grid-template-columns:2fr 1fr}}
 .del{border:0;background:transparent;color:var(--danger);font-weight:600;font-size:13px;cursor:pointer;padding:4px 6px}
 .confirm{display:flex;gap:4px;align-items:center;font-size:13px;color:var(--muted)}
 
@@ -164,7 +173,7 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
       </section>
       <section id="sec-cfg" hidden>
         <h2>Clientes y productos</h2>
-        <p class="sub">Lo que agregues acá aparece al instante en Pedidos de hoy.</p>
+        <p class="sub">Lo que agregues acá aparece al instante en Pedidos de hoy. Marcá qué productos lleva cada cliente para que solo aparezcan esos al cargar el pedido.</p>
         <div class="cfg">
           <div><h3>Clientes</h3>
             <form class="add" id="f-cli"><input id="in-cli" placeholder="Nombre del cliente" aria-label="Nuevo cliente"><button class="btn primary">Agregar</button></form>
@@ -251,6 +260,12 @@ setInterval(cargar,60000);                         // respaldo si se corta el ti
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cargar();});
 
 /* ================= RECEPCIÓN ================= */
+// Productos que lleva un cliente (si no tiene ninguno marcado, se muestran todos)
+function prodsDe(c){
+  const ids=Array.isArray(c?.productos)?c.productos:[];
+  const lista=productos.filter(p=>ids.includes(p.id));
+  return lista.length?lista:productos;
+}
 function renderRec(){
   $("rec-date").textContent=cap(fechaLarga());
   const hoy=fechaISO(), el=$("rows");
@@ -259,8 +274,9 @@ function renderRec(){
     el.addEventListener("focusout",()=>setTimeout(()=>{if(!el.contains(document.activeElement))renderRec();},300),{once:true});return;}
   el.innerHTML="";
   if(!clientes.length){el.innerHTML=`<div class="hempty">Todavía no hay clientes. Agregalos en Clientes y productos.</div>`;return;}
-  const campos=(pref,draft,extra=[])=>{
-    const prods=[...productos.map(p=>p.nombre),...extra.filter(n=>!productos.some(p=>p.nombre===n))];
+  const campos=(pref,draft,extra=[],cli=null)=>{
+    const base=prodsDe(cli).map(p=>p.nombre);
+    const prods=[...base,...extra.filter(n=>!base.includes(n))];
     return `<div class="qtys">${prods.map((n,i)=>`<div class="q"><label for="${pref}-${i}" title="${esc(n)}">${esc(n)}</label>
       <input id="${pref}-${i}" type="number" inputmode="numeric" min="0" placeholder="0" value="${draft[n]||""}" data-p="${esc(n)}"></div>`).join("")}</div>`;
   };
@@ -272,7 +288,7 @@ function renderRec(){
     const lineas=enviados.map(p=>{
       if(editId===p.id) return `<div class="editbox" data-box="${p.id}">
           <div class="editt">Editando pedido de las ${hora(p.enviado_at)}</div>
-          ${campos("e"+p.id,editDraft,p.items.map(i=>i.producto))}
+          ${campos("e"+p.id,editDraft,p.items.map(i=>i.producto),c)}
           <div class="row-foot"><button class="btn ghost" data-editno>Cancelar</button><button class="btn primary" data-editok="${p.id}">Guardar cambios</button></div>
         </div>`;
       return `<div class="sline"><span>Enviado ${hora(p.enviado_at)}${p.modificado?" · editado":""}: ${esc(txtItems(p.items))}</span>
@@ -283,7 +299,7 @@ function renderRec(){
     row.innerHTML=`<div class="row-head"><span class="cli">${esc(c.nombre)}</span>
       <span class="chips">${enviados.map(p=>`<span class="chip ${p.estado}">${ESTADOS[p.estado]}</span>`).join("")}</span></div>
       ${enviados.length?`<div class="sent">${lineas}</div>`:""}
-      ${editable?campos("q"+c.id,b):""}
+      ${editable?campos("q"+c.id,b,[],c):""}
       <div class="row-foot">${editable
         ?`${nuevoOtro[c.id]?`<button class="btn ghost" data-cancel>Cancelar</button>`:""}<button class="btn primary" data-send>Enviar</button>`
         :`<button class="btn ghost" data-otro>Agregar otro pedido</button>`}</div>`;
@@ -313,7 +329,7 @@ function renderRec(){
 }
 async function enviar(c,btn){
   const b=borradores[c.id];
-  const items=productos.filter(p=>b[p.nombre]).map(p=>({producto:p.nombre,cantidad:b[p.nombre]}));
+  const items=prodsDe(c).filter(p=>b[p.nombre]).map(p=>({producto:p.nombre,cantidad:b[p.nombre]}));
   if(!items.length)return;
   btn.disabled=true;btn.textContent="Enviando…";
   const {error}=await sb.from("sw_pedidos").insert({cliente_id:c.id,cliente:c.nombre,items,fecha_envio:fechaISO()});
@@ -352,16 +368,32 @@ function renderHist(){
 }
 
 function renderCfg(){
-  const mk=(arr,t)=>arr.map(x=>{const k=t+x.id;return `<li><span>${esc(x.nombre)}</span>${confirmando===k
+  const quitar=k=>confirmando===k
     ?`<span class="confirm">¿Quitar? <button class="del" data-ok="${k}">Sí</button><button class="del" style="color:var(--muted)" data-no>No</button></span>`
-    :`<button class="del" data-ask="${k}">Quitar</button>`}</li>`;}).join("");
-  $("l-cli").innerHTML=mk(clientes,"c");$("l-prod").innerHTML=mk(productos,"p");
+    :`<button class="del" data-ask="${k}">Quitar</button>`;
+  $("l-cli").innerHTML=clientes.map(c=>{
+    const ids=Array.isArray(c.productos)?c.productos:[];
+    const marcados=productos.filter(p=>ids.includes(p.id)).length;
+    return `<li class="cli-item"><div class="cli-top"><span>${esc(c.nombre)}</span>${quitar("c"+c.id)}</div>
+      <div class="pchips">${productos.map(p=>`<label class="pchip"><input type="checkbox" id="cp${c.id}-${p.id}" data-cli="${c.id}" data-prod="${p.id}" ${ids.includes(p.id)?"checked":""}>${esc(p.nombre)}</label>`).join("")}</div>
+      ${marcados?"":`<span class="pnote">Sin productos marcados: al cargar el pedido se muestran todos.</span>`}</li>`;
+  }).join("");
+  $("l-prod").innerHTML=productos.map(p=>`<li><span>${esc(p.nombre)}</span>${quitar("p"+p.id)}</li>`).join("");
   document.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{confirmando=b.dataset.ask;renderCfg();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{confirmando=null;renderCfg();});
   document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=async()=>{
     const k=b.dataset.ok,tabla=k[0]==="c"?"sw_clientes":"sw_productos";
     const {error}=await sb.from(tabla).update({activo:false}).eq("id",+k.slice(1));
     confirmando=null;toast(error?"No se pudo quitar":"Quitado");cargar();
+  });
+  document.querySelectorAll("[data-cli][data-prod]").forEach(chk=>chk.onchange=async()=>{
+    const c=clientes.find(x=>x.id===+chk.dataset.cli);
+    const actuales=new Set(Array.isArray(c.productos)?c.productos:[]);
+    chk.checked?actuales.add(+chk.dataset.prod):actuales.delete(+chk.dataset.prod);
+    const nuevos=productos.map(p=>p.id).filter(id=>actuales.has(id));
+    c.productos=nuevos;renderCfg();
+    const {error}=await sb.from("sw_clientes").update({productos:nuevos}).eq("id",c.id);
+    if(error){toast("No se pudo guardar. Probá de nuevo.");cargar();}
   });
 }
 function alta(form,input,tabla,tipo){
