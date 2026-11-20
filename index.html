@@ -20,7 +20,7 @@
   --bg:#f3f1ec; --surface:#fff; --ink:#1d1b17; --muted:#6e685d; --line:#ddd7cb;
   --accent:#b8561c; --accent-ink:#fff; --danger:#c0392b;
   --tab-card:#f5f3ef; --tab-line:#e4dfd5;
-  --nuevo:#f2b705; --prep:#2f7cf0; --listo:#1f9d57;
+  --nuevo:#f2b705; --prep:#2f7cf0; --listo:#1f9d57; --parcial:#ef7d00;
   --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
@@ -126,15 +126,26 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
 .tot{background:var(--tab-card);border:1px solid var(--tab-line);border-radius:12px;padding:12px 16px}
 .tot b{display:block;font-family:var(--f-display);font-size:56px;line-height:1}
 .tot small{font-weight:600;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
-.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:14px}
-.card{background:#fff;border:2px solid var(--tab-line);border-top:12px solid var(--nuevo);border-radius:14px;padding:16px;cursor:pointer;text-align:left;color:#141310;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 6px rgba(20,19,16,.06)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.card{background:#fff;border:2px solid var(--tab-line);border-top:12px solid var(--nuevo);border-radius:14px;padding:16px;cursor:pointer;text-align:left;color:#141310;display:flex;flex-direction:column;gap:10px;box-shadow:0 2px 6px rgba(20,19,16,.06);font:inherit}
 .card.prep{border-top-color:var(--prep)} .card.listo{border-top-color:var(--listo);opacity:.5}
+.card.parcial{border-color:var(--parcial);border-width:3px;border-top:12px solid var(--parcial)}
+.card .falta{align-self:stretch;background:var(--parcial);color:#fff;font-family:var(--f-display);font-weight:800;font-size:22px;letter-spacing:.04em;text-transform:uppercase;padding:6px 12px;border-radius:8px;text-align:center}
+.card:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.items{display:flex;flex-direction:column;gap:6px}
+.chip.parcial{background:var(--parcial);color:#fff}
 .card.flash{animation:flash 1s ease-in-out infinite}
 @keyframes flash{50%{box-shadow:0 0 0 6px var(--nuevo)}}
 @media (prefers-reduced-motion:reduce){.card.flash{animation:none;box-shadow:0 0 0 6px var(--nuevo)}}
 .card h3{margin:0;font-family:var(--f-display);font-size:30px;line-height:1.05;text-transform:uppercase}
 .card .old{font-size:13px;font-weight:600;color:var(--danger);text-transform:uppercase;letter-spacing:.06em}
-.it{display:flex;align-items:baseline;gap:10px;font-family:var(--f-display);font-weight:700;font-size:26px;text-transform:uppercase}
+.it{display:flex;align-items:center;gap:10px;width:100%;min-height:56px;padding:4px 10px 4px 4px;border:2px solid transparent;border-radius:10px;background:none;cursor:pointer;text-align:left;color:#141310;font-family:var(--f-display);font-weight:700;font-size:26px;text-transform:uppercase}
+.it .nom{flex:1;min-width:0;overflow-wrap:anywhere;line-height:1.05}
+.it .chk{flex:none;width:34px;height:34px;border:3px solid #c9c2b4;border-radius:50%;display:grid;place-items:center;font-size:22px;line-height:1;color:#fff}
+.it:hover{border-color:var(--tab-line)}
+.it.ok{background:#e3f4ea;color:var(--listo)}
+.it.ok .nom,.it.ok b{text-decoration:line-through;text-decoration-thickness:3px}
+.it.ok .chk{background:var(--listo);border-color:var(--listo)}
 .it b{font-size:42px;min-width:2.2ch;text-align:right}
 .state{margin-top:auto;display:flex;justify-content:space-between;font-weight:600;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .state .st{color:#141310}
@@ -217,6 +228,12 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TZ = "America/Montevideo";
 const ESTADOS = {nuevo:"Nuevo",prep:"Preparando",listo:"Listo"};
+// Productos ya preparados de un pedido (preparación parcial)
+const hechos=p=>Array.isArray(p.items_listos)?p.items_listos:[];
+const faltan=p=>p.items.filter(i=>!hechos(p).includes(i.producto));
+const esParcial=p=>p.estado!=="listo"&&p.items.some(i=>hechos(p).includes(i.producto));
+const claseEst=p=>esParcial(p)?"parcial":p.estado;
+const etiqueta=p=>esParcial(p)?"Parcial":ESTADOS[p.estado];
 let clientes=[], productos=[], pedidos=[];        // pedidos = últimos 3 días
 let borradores={}, sec="pedidos", diaHist=0, confirmando=null, nuevoOtro={}, editId=null, editDraft={}, borrarId=null;
 let sonido=false, ctx=null, avisados=new Set(), primeraCarga=true;
@@ -291,13 +308,13 @@ function renderRec(){
           ${campos("e"+p.id,editDraft,p.items.map(i=>i.producto),c)}
           <div class="row-foot"><button class="btn ghost" data-editno>Cancelar</button><button class="btn primary" data-editok="${p.id}">Guardar cambios</button></div>
         </div>`;
-      return `<div class="sline"><span>Enviado ${hora(p.enviado_at)}${p.modificado?" · editado":""}: ${esc(txtItems(p.items))}</span>
+      return `<div class="sline"><span>Enviado ${hora(p.enviado_at)}${p.modificado?" · editado":""}: ${esc(txtItems(p.items))}${esParcial(p)?` · <b style="color:var(--parcial)">falta ${esc(txtItems(faltan(p)))}</b>`:""}</span>
         <span class="acts">${borrarId===p.id
           ?`¿Eliminar este pedido? <button class="lnk danger" data-delok="${p.id}">Sí, eliminar</button><button class="lnk" data-delno>No</button>`
           :`<button class="lnk" data-edit="${p.id}">Editar</button><button class="lnk danger" data-del="${p.id}">Eliminar</button>`}</span></div>`;
     }).join("");
     row.innerHTML=`<div class="row-head"><span class="cli">${esc(c.nombre)}</span>
-      <span class="chips">${enviados.map(p=>`<span class="chip ${p.estado}">${ESTADOS[p.estado]}</span>`).join("")}</span></div>
+      <span class="chips">${enviados.map(p=>`<span class="chip ${claseEst(p)}">${etiqueta(p)}</span>`).join("")}</span></div>
       ${enviados.length?`<div class="sent">${lineas}</div>`:""}
       ${editable?campos("q"+c.id,b,[],c):""}
       <div class="row-foot">${editable
@@ -343,7 +360,9 @@ async function guardarEdicion(id,btn){
   const items=[...new Set(orden)].filter(n=>editDraft[n]).map(n=>({producto:n,cantidad:editDraft[n]}));
   if(!items.length){toast("El pedido quedó vacío. Si no va, usá Eliminar.");return;}
   btn.disabled=true;btn.textContent="Guardando…";
-  const {error}=await sb.from("sw_pedidos").update({items,modificado:true,visto:false,estado:p.estado==="listo"?"prep":p.estado,updated_at:new Date().toISOString()}).eq("id",id);
+  const antes={};p.items.forEach(i=>antes[i.producto]=i.cantidad);
+  const items_listos=items.filter(i=>hechos(p).includes(i.producto)&&antes[i.producto]===i.cantidad).map(i=>i.producto);
+  const {error}=await sb.from("sw_pedidos").update({items,items_listos,modificado:true,visto:false,estado:p.estado==="listo"?"prep":p.estado,updated_at:new Date().toISOString()}).eq("id",id);
   if(error){toast("No se pudo guardar. Probá de nuevo.");btn.disabled=false;btn.textContent="Guardar cambios";return;}
   editId=null;document.activeElement?.blur();toast("Pedido actualizado: "+p.cliente);cargar();
 }
@@ -363,7 +382,7 @@ function renderHist(){
   const lista=pedidos.filter(p=>p.fecha_envio===fechaISO(-diaHist));
   const tot={};lista.forEach(p=>p.items.forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
   $("hsum").innerHTML=lista.length?`<span><b>${lista.length}</b> pedidos</span>`+Object.entries(tot).map(([k,v])=>`<span><b>${v}</b> ${esc(k.toLowerCase())}</span>`).join(""):"";
-  $("hlist").innerHTML=lista.length?lista.map(p=>`<div class="hrow"><span class="time">${hora(p.enviado_at)}</span><span class="who">${esc(p.cliente)}</span><span class="chip ${p.estado}">${ESTADOS[p.estado]}</span><span class="what">${esc(txtItems(p.items))}</span></div>`).join("")
+  $("hlist").innerHTML=lista.length?lista.map(p=>`<div class="hrow"><span class="time">${hora(p.enviado_at)}</span><span class="who">${esc(p.cliente)}</span><span class="chip ${claseEst(p)}">${etiqueta(p)}</span><span class="what">${esc(txtItems(p.items))}${esParcial(p)?` · falta ${esc(txtItems(faltan(p)))}`:""}</span></div>`).join("")
     :`<div class="hempty">Ese día no se pasaron pedidos.</div>`;
 }
 
@@ -415,21 +434,41 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
 
 /* ================= TABLET ================= */
 let verListos=false;
+async function guardarPedido(p,upd,msg){
+  Object.assign(p,upd);renderTab();if(msg)toast(msg);
+  const {error}=await sb.from("sw_pedidos").update({...upd,updated_at:new Date().toISOString()}).eq("id",p.id);
+  if(error){toast("No se pudo guardar el cambio");cargar();}
+}
 function tarjeta(p,hoy){
-  const card=document.createElement("button");
-  card.className="card "+p.estado+(p.visto?"":" flash");
+  const card=document.createElement("div");
+  card.className="card "+claseEst(p)+(p.visto?"":" flash");
+  card.setAttribute("role","button");card.tabIndex=0;
+  const h=hechos(p), f=faltan(p);
   card.innerHTML=`${p.fecha_envio!==hoy?`<span class="old">Pendiente del ${new Date(p.fecha_envio+"T12:00").toLocaleDateString("es-UY",{weekday:"long",day:"numeric"})}</span>`:""}
     ${p.modificado?`<span class="mod${p.visto?" seen":""}">${p.visto?"Editado":"⚠ Modificado"}</span>`:""}
-    <h3>${esc(p.cliente)}</h3><div>${p.items.map(i=>`<div class="it"><b>${i.cantidad}</b>${esc(i.producto)}</div>`).join("")}</div>
-    <div class="state"><span class="st">● ${ESTADOS[p.estado]}</span><span>${hora(p.enviado_at)}</span></div>`;
-  card.onclick=async()=>{
-    const upd=!p.visto?{visto:true}:{estado:p.estado==="nuevo"?"prep":p.estado==="prep"?"listo":"prep"};
-    Object.assign(p,upd);renderTab();
-    if(upd.estado==="listo")toast("Listo: "+p.cliente);
-    if(upd.estado==="prep"&&verListos)toast("Devuelto a Preparando: "+p.cliente);
-    const {error}=await sb.from("sw_pedidos").update({...upd,updated_at:new Date().toISOString()}).eq("id",p.id);
-    if(error){toast("No se pudo guardar el cambio");cargar();}
+    ${esParcial(p)?`<span class="falta">Parcial · falta ${f.length}</span>`:""}
+    <h3>${esc(p.cliente)}</h3>
+    <div class="items">${p.items.map((i,n)=>`<button class="it${h.includes(i.producto)?" ok":""}" data-n="${n}" aria-pressed="${h.includes(i.producto)}"><b>${i.cantidad}</b><span class="nom">${esc(i.producto)}</span><span class="chk">${h.includes(i.producto)?"✓":""}</span></button>`).join("")}</div>
+    <div class="state"><span class="st">● ${etiqueta(p)}</span><span>${hora(p.enviado_at)}</span></div>`;
+  // Tocar un producto: marcarlo como hecho (o desmarcarlo)
+  card.querySelectorAll(".it").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();
+    const nombre=p.items[+b.dataset.n].producto;
+    const set=new Set(hechos(p));set.has(nombre)?set.delete(nombre):set.add(nombre);
+    const items_listos=p.items.map(i=>i.producto).filter(x=>set.has(x));
+    const completo=items_listos.length===p.items.length;
+    const estado=completo?"listo":"prep";
+    guardarPedido(p,{items_listos,estado,visto:true},completo?"Listo: "+p.cliente:(p.estado==="listo"?"Devuelto a Preparando: "+p.cliente:null));
+  });
+  // Tocar la tarjeta: Nuevo → Preparando → Listo (todo)
+  const avanzar=()=>{
+    if(!p.visto)return guardarPedido(p,{visto:true});
+    if(p.estado==="nuevo")return guardarPedido(p,{estado:"prep"});
+    if(p.estado==="prep")return guardarPedido(p,{estado:"listo",items_listos:p.items.map(i=>i.producto)},"Listo: "+p.cliente);
+    guardarPedido(p,{estado:"prep",items_listos:[]},"Devuelto a Preparando: "+p.cliente);
   };
+  card.onclick=avanzar;
+  card.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&e.target===card){e.preventDefault();avanzar();}};
   return card;
 }
 function renderTab(){
@@ -442,7 +481,7 @@ function renderTab(){
   $("n-listos").textContent=listos.length;
   $("tab-main").hidden=verListos;$("tab-listos").hidden=!verListos;
   $("btn-listos").setAttribute("aria-pressed",verListos);
-  const tot={};pendientes.forEach(p=>p.items.forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
+  const tot={};pendientes.forEach(p=>faltan(p).forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
   const keys=Object.keys(tot);
   $("totals").innerHTML=keys.length?keys.map(k=>`<div class="tot"><b>${tot[k]}</b><small>${esc(k)}</small></div>`).join("")
     :`<div class="tot"><b>0</b><small>Nada pendiente</small></div>`;
