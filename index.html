@@ -50,7 +50,14 @@ h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase
 .rows{display:flex;flex-direction:column;gap:18px;margin-top:14px}
 .sblock{border-radius:12px;border:2px solid var(--sc);background:var(--sbg);overflow:hidden}
 .sblock.sand{--sc:var(--s-sand);--sbg:var(--s-sand-bg)} .sblock.env{--sc:var(--s-env);--sbg:var(--s-env-bg)}
-.sb-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sc);color:#fff;padding:10px 14px}
+.sb-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sc);color:#fff;padding:12px 16px;width:100%;border:0;cursor:pointer;text-align:left;font:inherit}
+.sb-head:focus-visible{outline:3px solid #fff;outline-offset:-5px}
+.sb-head .chev{display:inline-block;transition:transform .2s;margin-right:8px;font-size:16px}
+.sblock.cerrado .chev{transform:rotate(-90deg)}
+.sblock.cerrado .sb-body{display:none}
+.sb-pills{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.sb-pill{background:rgba(255,255,255,.2);border-radius:99px;padding:3px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.sb-pill.alerta{background:#fff;color:var(--sc)}
 .sb-head b{font-family:var(--f-display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}
 .sb-head span{font-size:13px;font-weight:600;opacity:.95}
 .sb-body{display:flex;flex-direction:column;gap:10px;padding:12px}
@@ -160,6 +167,27 @@ body.env .tab-title b{color:var(--s-env)} body.sand .tab-title b{color:var(--s-s
 .sound[aria-pressed="true"]{border-color:var(--listo);color:var(--listo)}
 .tlabel{font-weight:600;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
 .totals{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+/* Envasado: totales por producto */
+.env-aviso{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--nuevo);color:#141310;border-radius:12px;padding:12px 16px;font-family:var(--f-display);font-weight:800;font-size:24px;text-transform:uppercase;animation:flash 1s ease-in-out infinite}
+.env-aviso.mod{background:var(--danger);color:#fff}
+.env-aviso button{background:#141310;color:#fff;border:0;border-radius:10px;font:600 16px var(--f-body);padding:10px 18px;cursor:pointer}
+@media (prefers-reduced-motion:reduce){.env-aviso{animation:none}}
+.env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:16px}
+.ptile{background:#fff;border:2px solid var(--tab-line);border-top:12px solid var(--s-env);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;text-align:left;cursor:pointer;color:#141310;font:inherit;box-shadow:0 2px 6px rgba(20,19,16,.06)}
+.ptile:focus-visible{outline:3px solid var(--s-env);outline-offset:3px}
+.ptile .pt-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ptile .pt-num{font-family:var(--f-display);font-weight:800;font-size:72px;line-height:.9}
+.ptile .pt-chk{flex:none;width:52px;height:52px;border:4px solid #c9c2b4;border-radius:50%;display:grid;place-items:center;font-size:30px;color:#fff}
+.ptile .pt-nom{font-family:var(--f-display);font-weight:800;font-size:30px;text-transform:uppercase;line-height:1}
+.ptile .pt-sub{font-size:14px;font-weight:600;color:var(--muted)}
+.ptile.parcial{border-top-color:var(--parcial)}
+.ptile.ok{background:#e3f4ea;border-color:#bfe3cc;border-top-color:var(--listo)}
+.ptile.ok .pt-num,.ptile.ok .pt-nom{color:var(--listo);text-decoration:line-through;text-decoration-thickness:4px}
+.ptile.ok .pt-chk{background:var(--listo);border-color:var(--listo)}
+.pt-des{display:flex;flex-direction:column;gap:2px;border-top:1px dashed var(--tab-line);padding-top:8px;margin-top:2px}
+.pt-des div{display:flex;justify-content:space-between;gap:8px;font-size:16px;font-weight:600}
+.pt-des div.ok{color:var(--listo);text-decoration:line-through}
+.pt-des b{font-family:var(--f-display);font-size:22px}
 .tot{background:var(--tab-card);border:1px solid var(--tab-line);border-radius:12px;padding:12px 16px}
 .tot b{display:block;font-family:var(--f-display);font-size:56px;line-height:1}
 .tot small{font-weight:600;font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
@@ -250,13 +278,17 @@ body.env .tab-title b{color:var(--s-env)} body.sand .tab-title b{color:var(--s-s
     <div class="tab-head">
       <div class="tab-title"><b id="tab-sector">Sandwichería</b><span id="tab-date"></span></div>
       <div class="tab-btns">
+        <button class="sound" id="btn-desglose" aria-pressed="false" hidden>📋 Ver desglose</button>
         <button class="sound" id="btn-listos" aria-pressed="false">✓ Listos de hoy <span id="n-listos">0</span></button>
         <button class="sound" id="sound" aria-pressed="false">🔈 Activar sonido</button>
       </div>
     </div>
     <div id="tab-main">
-      <div class="tlabel">Total a preparar</div><div class="totals" id="totals"></div>
-      <div class="cards" id="cards" style="margin-top:18px"></div>
+      <div id="sand-main">
+        <div class="tlabel">Total a preparar</div><div class="totals" id="totals"></div>
+        <div class="cards" id="cards" style="margin-top:18px"></div>
+      </div>
+      <div id="env-main" hidden></div>
     </div>
     <div id="tab-listos" hidden>
       <div class="listos-head"><h2>Listos de hoy</h2><button class="sound" id="btn-volver">← Volver a pendientes</button></div>
@@ -329,6 +361,9 @@ setInterval(cargar,60000);                         // respaldo si se corta el ti
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)cargar();});
 
 /* ================= RECEPCIÓN ================= */
+// Bloques desplegables: se recuerda cuál quedó cerrado en esta compu
+const bloqueCerrado=k=>{try{return localStorage.getItem("cerrado_"+k)==="1";}catch(_){return false;}};
+const guardarBloque=(k,cerrado)=>{try{localStorage.setItem("cerrado_"+k,cerrado?"1":"0");}catch(_){}};
 // Productos que lleva un cliente (si no tiene ninguno marcado, se muestran todos)
 function prodsDe(c){
   const ids=Array.isArray(c?.productos)?c.productos:[];
@@ -355,7 +390,13 @@ function renderRec(){
     const delHoy=pedidos.filter(p=>secDe(p)===k&&p.fecha_envio===hoy);
     const pend=pedidos.filter(p=>secDe(p)===k&&p.estado!=="listo").length;
     const blk=document.createElement("div");blk.className="sblock "+s.css;
-    blk.innerHTML=`<div class="sb-head"><b>${s.icono} ${s.nombre}</b><span>${delHoy.length} pedido${delHoy.length===1?"":"s"} hoy · ${pend} pendiente${pend===1?"":"s"}</span></div><div class="sb-body"></div>`;
+    const cerrado=bloqueCerrado(k);
+    if(cerrado)blk.classList.add("cerrado");
+    const nCli=clientes.filter(c=>secDe(c)===k).length;
+    const sinPedido=clientes.filter(c=>secDe(c)===k&&!delHoy.some(p=>p.cliente_id===c.id)).length;
+    blk.innerHTML=`<button class="sb-head" aria-expanded="${!cerrado}"><b><span class="chev">▾</span>${s.icono} ${s.nombre}</b>
+      <span class="sb-pills"><span class="sb-pill">${delHoy.length} pedido${delHoy.length===1?"":"s"} hoy</span>${pend?`<span class="sb-pill alerta">${pend} pendiente${pend===1?"":"s"}</span>`:""}<span class="sb-pill">${sinPedido} de ${nCli} sin pedido</span></span></button><div class="sb-body"></div>`;
+    blk.querySelector(".sb-head").onclick=()=>{const c=!blk.classList.toggle("cerrado");guardarBloque(k,!c);blk.querySelector(".sb-head").setAttribute("aria-expanded",c);};
     bloques[k]=blk.querySelector(".sb-body");
     const cl=clientes.filter(c=>secDe(c)===k);
     if(!cl.length)bloques[k].innerHTML=`<div class="hempty">Sin clientes de ${s.nombre}. Se agregan en Clientes y productos${k==="envasado"?" o al enviar la planilla":""}.</div>`;
@@ -513,7 +554,9 @@ let plan=null;
 const nrm=v=>v==null?"":String(v).trim().toUpperCase();
 const sinEsp=v=>nrm(v).replace(/\s/g,"");
 const num=v=>typeof v==="number"&&isFinite(v)?v:0;
-const ENVASADO=[["VIEX8","VIE X8"],["TORX4","TOR X4"],["TORX6","TOR X6"],["SESX4","SES X4"],["CATX4","CAT X4"],["VIEX4","VIE X4"],["BRIOX4","BRIO X4"]];
+const ENVASADO=[["VIEX8","VIE X8"],["TORX4","TORT X4"],["TORX6","TORT X6"],["SESX4","TORT SES X4"],["CATX4","CAT X4"],["VIEX4","VIE X4"],["BRIOX4","BRIO X4"]];
+// Orden de los productos de envasado en la tablet
+const ORDEN_ENV=["TORT X2","TORT X4","TORT X6","TORT SES X4","VIE X4","VIE X8","CAT X4","BRIO X4"];
 const SAND=["bla","neg","lact","inte","ssal"];
 const CAMPOS=[...SAND,...ENVASADO.map(([k])=>k)];
 function leerHoja(rows){
@@ -675,6 +718,58 @@ function tarjeta(p,hoy){
   card.onkeydown=e=>{if((e.key==="Enter"||e.key===" ")&&e.target===card){e.preventDefault();avanzar();}};
   return card;
 }
+let verDesglose=false;
+try{verDesglose=localStorage.getItem("verDesglose")==="1";}catch(_){}
+// Envasado: todo lo pendiente + lo listo de hoy, agrupado por producto
+function renderEnvTotal(delSector,hoy){
+  const set=delSector.filter(p=>p.estado!=="listo"||p.fecha_envio===hoy);
+  const agg={};
+  set.forEach(p=>p.items.forEach(i=>{
+    const a=agg[i.producto]||(agg[i.producto]={nombre:i.producto,total:0,hecho:0,lineas:[]});
+    const ok=p.estado==="listo"||hechos(p).includes(i.producto);
+    a.total+=i.cantidad;if(ok)a.hecho+=i.cantidad;
+    a.lineas.push({cliente:p.cliente,cant:i.cantidad,ok,fecha:p.fecha_envio});
+  }));
+  const pos=n=>{const i=ORDEN_ENV.indexOf(nrm(n));return i<0?99:i;};
+  const lista=Object.values(agg).sort((a,b)=>(a.hecho===a.total)-(b.hecho===b.total)||pos(a.nombre)-pos(b.nombre)||a.nombre.localeCompare(b.nombre));
+  const nuevos=set.filter(p=>!p.visto);
+  const mods=nuevos.filter(p=>p.modificado);
+  const el=$("env-main");
+  el.innerHTML=`${nuevos.length?`<div class="env-aviso${mods.length?" mod":""}"><span>${mods.length?"⚠ Pedido modificado":"🔔 Pedido nuevo"}: ${nuevos.map(p=>esc(p.cliente)).join(", ")}</span><button id="env-visto">Visto</button></div>`:""}
+    ${lista.length?`<div class="env-grid">${lista.map((a,n)=>{
+      const falta=a.total-a.hecho,ok=falta===0,parc=!ok&&a.hecho>0;
+      const nCli=new Set(a.lineas.map(l=>l.cliente)).size;
+      return `<button class="ptile${ok?" ok":parc?" parcial":""}" data-prod="${n}" aria-pressed="${ok}">
+        <div class="pt-top"><span class="pt-num">${ok?a.total:falta}</span><span class="pt-chk">${ok?"✓":""}</span></div>
+        <div class="pt-nom">${esc(a.nombre)}</div>
+        <div class="pt-sub">${ok?"Listo":parc?`Faltan ${falta} de ${a.total}`:"A preparar"} · ${nCli} cliente${nCli===1?"":"s"}</div>
+        ${verDesglose?`<div class="pt-des">${a.lineas.map(l=>`<div class="${l.ok?"ok":""}"><span>${esc(l.cliente)}${l.fecha!==hoy?" (pendiente)":""}</span><b>${l.cant}</b></div>`).join("")}</div>`:""}
+      </button>`;}).join("")}</div>`
+    :`<div class="empty">Todavía no llegaron pedidos hoy.</div>`}`;
+  $("env-visto")?.addEventListener("click",async()=>{
+    nuevos.forEach(p=>p.visto=true);renderTab();
+    const {error}=await sb.from("sw_pedidos").update({visto:true}).in("id",nuevos.map(p=>p.id));
+    if(error){toast("No se pudo guardar");cargar();}
+  });
+  el.querySelectorAll(".ptile").forEach(b=>b.onclick=()=>marcarProducto(lista[+b.dataset.prod].nombre,set));
+}
+// Tocar un producto: lo marca hecho en todos los pedidos (o lo desmarca si ya estaba todo hecho)
+async function marcarProducto(nombre,set){
+  const con=set.filter(p=>p.items.some(i=>i.producto===nombre));
+  const todoHecho=con.every(p=>p.estado==="listo"||hechos(p).includes(nombre));
+  const cambios=con.map(p=>{
+    const s=new Set(p.estado==="listo"?p.items.map(i=>i.producto):hechos(p));
+    todoHecho?s.delete(nombre):s.add(nombre);
+    const items_listos=p.items.map(i=>i.producto).filter(x=>s.has(x));
+    const estado=items_listos.length===p.items.length?"listo":"prep";
+    return {p,upd:{items_listos,estado,visto:true}};
+  });
+  cambios.forEach(({p,upd})=>Object.assign(p,upd));renderTab();
+  toast(todoHecho?`${nombre}: vuelve a pendiente`:`${nombre}: listo`);
+  const res=await Promise.all(cambios.map(({p,upd})=>sb.from("sw_pedidos").update({...upd,updated_at:new Date().toISOString()}).eq("id",p.id)));
+  if(res.some(r=>r.error)){toast("No se pudo guardar el cambio");cargar();}
+}
+$("btn-desglose").onclick=()=>{verDesglose=!verDesglose;try{localStorage.setItem("verDesglose",verDesglose?"1":"0");}catch(_){}renderTab();};
 function renderTab(){
   $("tab-date").textContent=cap(fechaLarga());
   const hoy=fechaISO();
@@ -687,6 +782,11 @@ function renderTab(){
   $("n-listos").textContent=listos.length;
   $("tab-main").hidden=verListos;$("tab-listos").hidden=!verListos;
   $("btn-listos").setAttribute("aria-pressed",verListos);
+  const esEnv=sectorTab==="envasado";
+  $("sand-main").hidden=esEnv;$("env-main").hidden=!esEnv;
+  $("btn-desglose").hidden=!esEnv;$("btn-desglose").setAttribute("aria-pressed",verDesglose);
+  $("btn-desglose").textContent=verDesglose?"📋 Ocultar desglose":"📋 Ver desglose";
+  if(esEnv)renderEnvTotal(delSector,hoy);
   const tot={};pendientes.forEach(p=>faltan(p).forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
   const keys=Object.keys(tot);
   $("totals").innerHTML=keys.length?keys.map(k=>`<div class="tot"><b>${tot[k]}</b><small>${esc(k)}</small></div>`).join("")
