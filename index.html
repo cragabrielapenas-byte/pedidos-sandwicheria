@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pedidos Sandwichería · Amsterdam</title>
+<title>Pedidos · Amsterdam</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#b8561c">
 <link rel="icon" href="icon-192.png">
@@ -21,7 +21,7 @@
   --bg:#f3f1ec; --surface:#fff; --ink:#1d1b17; --muted:#6e685d; --line:#ddd7cb;
   --accent:#b8561c; --accent-ink:#fff; --danger:#c0392b;
   --tab-card:#f5f3ef; --tab-line:#e4dfd5;
-  --nuevo:#f2b705; --prep:#2f7cf0; --listo:#1f9d57; --parcial:#ef7d00;
+  --nuevo:#f2b705; --prep:#2f7cf0; --listo:#1f9d57; --parcial:#ef7d00; --s-sand:#b8561c; --s-sand-bg:#fbf1ea; --s-env:#0e7c86; --s-env-bg:#e8f5f6;
   --f-display:"Barlow Condensed","Arial Narrow",Arial,sans-serif;
   --f-body:"Barlow",system-ui,-apple-system,"Segoe UI",sans-serif;
 }
@@ -47,7 +47,21 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 .nav button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase;letter-spacing:.02em}
 .sub{color:var(--muted);margin:2px 0 0;font-size:14px}
-.rows{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.rows{display:flex;flex-direction:column;gap:18px;margin-top:14px}
+.sblock{border-radius:12px;border:2px solid var(--sc);background:var(--sbg);overflow:hidden}
+.sblock.sand{--sc:var(--s-sand);--sbg:var(--s-sand-bg)} .sblock.env{--sc:var(--s-env);--sbg:var(--s-env-bg)}
+.sb-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;background:var(--sc);color:#fff;padding:10px 14px}
+.sb-head b{font-family:var(--f-display);font-size:22px;letter-spacing:.03em;text-transform:uppercase}
+.sb-head span{font-size:13px;font-weight:600;opacity:.95}
+.sb-body{display:flex;flex-direction:column;gap:10px;padding:12px}
+.sb-body .row{background:var(--surface)}
+.stag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 8px;border-radius:99px;color:#fff;white-space:nowrap}
+.stag.sand{background:var(--s-sand)} .stag.env{background:var(--s-env)}
+.lk-sand{color:var(--s-sand)!important} .lk-env{color:var(--s-env)!important}
+.add select,.cli-sec{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:#fff;font-weight:600;font-size:13px}
+.plan-group{display:flex;flex-direction:column;gap:8px;border-left:5px solid var(--sc);padding-left:10px}
+.plan-group.sand{--sc:var(--s-sand)} .plan-group.env{--sc:var(--s-env)}
+.plan-gt{font-family:var(--f-display);font-weight:800;font-size:18px;text-transform:uppercase;color:var(--sc)}
 .plan{margin-top:14px;border:1.5px dashed var(--accent);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px;background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
 .plan-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
 .plan-head b{display:block;font-size:15px}
@@ -97,7 +111,7 @@ details.plan-det summary{cursor:pointer;font-size:13px;font-weight:600;color:var
 .days button[aria-pressed="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
 .hsum{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:14px;color:var(--muted);margin-top:12px}
 .hsum b{color:var(--ink)}
-.hrow{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.hrow{display:grid;grid-template-columns:78px minmax(0,1fr) auto;gap:4px 12px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
 .hrow .time{color:var(--muted);font-weight:600}
 .hrow .who{font-weight:600}
 .hrow .what{grid-column:2;color:var(--muted);font-size:14px}
@@ -139,6 +153,8 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
   body.tablet .tot b{font-size:46px}
 }
 .tab-title{font-family:var(--f-display);font-weight:800;font-size:40px;line-height:1;text-transform:uppercase}
+.tab-title b{font-weight:800}
+body.env .tab-title b{color:var(--s-env)} body.sand .tab-title b{color:var(--s-sand)}
 .tab-title span{display:block;font-size:18px;font-weight:600;color:var(--muted);letter-spacing:.06em;margin-top:4px}
 .sound{background:var(--tab-card);color:#141310;border:1px solid var(--tab-line);border-radius:10px;font-weight:600;font-size:16px;padding:12px 16px;cursor:pointer}
 .sound[aria-pressed="true"]{border-color:var(--listo);color:var(--listo)}
@@ -185,8 +201,8 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
   <!-- ===== RECEPCIÓN ===== -->
   <div id="view-rec" hidden>
     <header class="top">
-      <div class="brand">Pedidos Sandwichería<small>Panificadora Amsterdam · Recepción</small></div>
-      <div class="link">Vista tablet: <a href="#tablet" id="lnk-tab">abrir</a></div>
+      <div class="brand">Pedidos de producción<small>Panificadora Amsterdam · Recepción</small></div>
+      <div class="link">Tablets: <a href="#tablet" class="lk-sand">🥪 Sandwichería</a> · <a href="#envasado" class="lk-env">📦 Envasado</a></div>
     </header>
     <div class="rec">
       <nav class="nav">
@@ -199,7 +215,7 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
         <p class="sub" id="rec-date"></p>
         <div class="plan" id="plan">
           <div class="plan-head">
-            <div><b>Cargar planilla del día</b><span>La app calcula los moldes de AZULES y los LACTALES de Disco, Devoto y Fresh, y los manda como pedidos.</span></div>
+            <div><b>Cargar planilla del día</b><span>La app arma los pedidos de Sandwichería (Azules y Lactales) y de Envasado (Disco, Devoto y Fresh).</span></div>
             <label class="btn primary" for="plan-file">Cargar planilla</label>
             <input type="file" id="plan-file" accept=".xlsx,.xls,.xlsm" hidden>
           </div>
@@ -209,7 +225,7 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
       </section>
       <section id="sec-hist" hidden>
         <h2>Histórico</h2>
-        <p class="sub">Lo que se pasó a sandwichería en los últimos 3 días.</p>
+        <p class="sub">Lo que se pasó a Sandwichería y a Envasado en los últimos 3 días.</p>
         <div class="days" id="days"></div>
         <div class="hsum" id="hsum"></div>
         <div id="hlist" style="margin-top:8px"></div>
@@ -219,10 +235,10 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
         <p class="sub">Lo que agregues acá aparece al instante en Pedidos de hoy. Marcá qué productos lleva cada cliente para que solo aparezcan esos al cargar el pedido.</p>
         <div class="cfg">
           <div><h3>Clientes</h3>
-            <form class="add" id="f-cli"><input id="in-cli" placeholder="Nombre del cliente" aria-label="Nuevo cliente"><button class="btn primary">Agregar</button></form>
+            <form class="add" id="f-cli"><input id="in-cli" placeholder="Nombre del cliente" aria-label="Nuevo cliente"><select id="in-cli-sec" aria-label="Sector del cliente"><option value="sandwicheria">🥪 Sandwichería</option><option value="envasado">📦 Envasado</option></select><button class="btn primary">Agregar</button></form>
             <ul class="list" id="l-cli"></ul></div>
           <div><h3>Productos</h3>
-            <form class="add" id="f-prod"><input id="in-prod" placeholder="Nombre del producto" aria-label="Nuevo producto"><button class="btn primary">Agregar</button></form>
+            <form class="add" id="f-prod"><input id="in-prod" placeholder="Nombre del producto" aria-label="Nuevo producto"><select id="in-prod-sec" aria-label="Sector del producto"><option value="sandwicheria">🥪 Sandwichería</option><option value="envasado">📦 Envasado</option></select><button class="btn primary">Agregar</button></form>
             <ul class="list" id="l-prod"></ul></div>
         </div>
       </section>
@@ -232,7 +248,7 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
   <!-- ===== TABLET ===== -->
   <div id="view-tab" class="tab" hidden>
     <div class="tab-head">
-      <div class="tab-title">Pedidos<span id="tab-date"></span></div>
+      <div class="tab-title"><b id="tab-sector">Sandwichería</b><span id="tab-date"></span></div>
       <div class="tab-btns">
         <button class="sound" id="btn-listos" aria-pressed="false">✓ Listos de hoy <span id="n-listos">0</span></button>
         <button class="sound" id="sound" aria-pressed="false">🔈 Activar sonido</button>
@@ -260,6 +276,10 @@ const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 const TZ = "America/Montevideo";
 const ESTADOS = {nuevo:"Nuevo",prep:"Preparando",listo:"Listo"};
+// Sectores de producción
+const SECTORES={sandwicheria:{nombre:"Sandwichería",icono:"🥪",css:"sand"},envasado:{nombre:"Envasado",icono:"📦",css:"env"}};
+const secDe=x=>(x&&x.sector)||"sandwicheria";
+const stag=x=>{const s=SECTORES[secDe(x)];return `<span class="stag ${s.css}">${s.nombre}</span>`;};
 // Productos ya preparados de un pedido (preparación parcial)
 const hechos=p=>Array.isArray(p.items_listos)?p.items_listos:[];
 const faltan=p=>p.items.filter(i=>!hechos(p).includes(i.producto));
@@ -292,7 +312,7 @@ async function cargar(){
   err("");
   clientes=c.data;productos=p.data;
   // aviso de pedidos nuevos en la tablet
-  const firmas=o.data.filter(x=>!x.visto).map(x=>x.id+":"+x.updated_at);
+  const firmas=o.data.filter(x=>!x.visto&&(modo!=="tablet"||secDe(x)===sectorTab)).map(x=>x.id+":"+x.updated_at);
   const hayAviso=firmas.some(f=>!avisados.has(f));
   firmas.forEach(f=>avisados.add(f));
   if(!primeraCarga&&hayAviso&&modo==="tablet")beep();
@@ -312,8 +332,9 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)cargar();}
 // Productos que lleva un cliente (si no tiene ninguno marcado, se muestran todos)
 function prodsDe(c){
   const ids=Array.isArray(c?.productos)?c.productos:[];
-  const lista=productos.filter(p=>ids.includes(p.id));
-  return lista.length?lista:productos;
+  const delSector=productos.filter(p=>secDe(p)===secDe(c));
+  const lista=delSector.filter(p=>ids.includes(p.id));
+  return lista.length?lista:delSector;
 }
 function renderRec(){
   $("rec-date").textContent=cap(fechaLarga());
@@ -329,6 +350,17 @@ function renderRec(){
     return `<div class="qtys">${prods.map((n,i)=>`<div class="q"><label for="${pref}-${i}" title="${esc(n)}">${esc(n)}</label>
       <input id="${pref}-${i}" type="number" inputmode="numeric" min="0" placeholder="0" value="${draft[n]||""}" data-p="${esc(n)}"></div>`).join("")}</div>`;
   };
+  const bloques={};
+  Object.entries(SECTORES).forEach(([k,s])=>{
+    const delHoy=pedidos.filter(p=>secDe(p)===k&&p.fecha_envio===hoy);
+    const pend=pedidos.filter(p=>secDe(p)===k&&p.estado!=="listo").length;
+    const blk=document.createElement("div");blk.className="sblock "+s.css;
+    blk.innerHTML=`<div class="sb-head"><b>${s.icono} ${s.nombre}</b><span>${delHoy.length} pedido${delHoy.length===1?"":"s"} hoy · ${pend} pendiente${pend===1?"":"s"}</span></div><div class="sb-body"></div>`;
+    bloques[k]=blk.querySelector(".sb-body");
+    const cl=clientes.filter(c=>secDe(c)===k);
+    if(!cl.length)bloques[k].innerHTML=`<div class="hempty">Sin clientes de ${s.nombre}. Se agregan en Clientes y productos${k==="envasado"?" o al enviar la planilla":""}.</div>`;
+    el.appendChild(blk);
+  });
   clientes.forEach(c=>{
     const enviados=pedidos.filter(p=>p.cliente_id===c.id&&p.fecha_envio===hoy);
     const editable=!enviados.length||nuevoOtro[c.id];
@@ -373,7 +405,7 @@ function renderRec(){
     row.querySelectorAll("[data-del]").forEach(x=>x.onclick=()=>{borrarId=+x.dataset.del;editId=null;renderRec();});
     row.querySelector("[data-delno]")?.addEventListener("click",()=>{borrarId=null;renderRec();});
     row.querySelector("[data-delok]")?.addEventListener("click",e=>eliminar(+e.currentTarget.dataset.delok,e.currentTarget));
-    el.appendChild(row);
+    bloques[secDe(c)].appendChild(row);
   });
 }
 async function enviar(c,btn){
@@ -381,14 +413,14 @@ async function enviar(c,btn){
   const items=prodsDe(c).filter(p=>b[p.nombre]).map(p=>({producto:p.nombre,cantidad:b[p.nombre]}));
   if(!items.length)return;
   btn.disabled=true;btn.textContent="Enviando…";
-  const {error}=await sb.from("sw_pedidos").insert({cliente_id:c.id,cliente:c.nombre,items,fecha_envio:fechaISO()});
+  const {error}=await sb.from("sw_pedidos").insert({cliente_id:c.id,cliente:c.nombre,items,fecha_envio:fechaISO(),sector:secDe(c)});
   if(error){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent="Enviar";return;}
   borradores[c.id]={};nuevoOtro[c.id]=false;document.activeElement?.blur();
   toast("Enviado: "+c.nombre);cargar();
 }
 async function guardarEdicion(id,btn){
   const p=pedidos.find(q=>q.id===id);
-  const orden=[...productos.map(x=>x.nombre),...p.items.map(i=>i.producto)];
+  const orden=[...productos.filter(x=>secDe(x)===secDe(p)).map(x=>x.nombre),...p.items.map(i=>i.producto)];
   const items=[...new Set(orden)].filter(n=>editDraft[n]).map(n=>({producto:n,cantidad:editDraft[n]}));
   if(!items.length){toast("El pedido quedó vacío. Si no va, usá Eliminar.");return;}
   btn.disabled=true;btn.textContent="Guardando…";
@@ -412,9 +444,8 @@ function renderHist(){
     return `<button data-d="${i}" aria-pressed="${i===diaHist}">${l} ${fechaLarga(-i,{day:"numeric",month:"numeric"})}</button>`;}).join("");
   $("days").querySelectorAll("button").forEach(b=>b.onclick=()=>{diaHist=+b.dataset.d;renderHist();});
   const lista=pedidos.filter(p=>p.fecha_envio===fechaISO(-diaHist));
-  const tot={};lista.forEach(p=>p.items.forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
-  $("hsum").innerHTML=lista.length?`<span><b>${lista.length}</b> pedidos</span>`+Object.entries(tot).map(([k,v])=>`<span><b>${v}</b> ${esc(k.toLowerCase())}</span>`).join(""):"";
-  $("hlist").innerHTML=lista.length?lista.map(p=>`<div class="hrow"><span class="time">${hora(p.enviado_at)}</span><span class="who">${esc(p.cliente)}</span><span class="chip ${claseEst(p)}">${etiqueta(p)}</span><span class="what">${esc(txtItems(p.items))}${esParcial(p)?` · falta ${esc(txtItems(faltan(p)))}`:""}</span></div>`).join("")
+  $("hsum").innerHTML=lista.length?Object.entries(SECTORES).map(([k,s])=>{const l=lista.filter(p=>secDe(p)===k);return `<span>${s.icono} <b>${l.length}</b> pedido${l.length===1?"":"s"} de ${s.nombre}</span>`;}).join(""):"";
+  $("hlist").innerHTML=lista.length?lista.map(p=>`<div class="hrow"><span class="time">${hora(p.enviado_at)}</span><span class="who">${esc(p.cliente)} ${stag(p)}</span><span class="chip ${claseEst(p)}">${etiqueta(p)}</span><span class="what">${esc(txtItems(p.items))}${esParcial(p)?` · falta ${esc(txtItems(faltan(p)))}`:""}</span></div>`).join("")
     :`<div class="hempty">Ese día no se pasaron pedidos.</div>`;
 }
 
@@ -422,14 +453,23 @@ function renderCfg(){
   const quitar=k=>confirmando===k
     ?`<span class="confirm">¿Quitar? <button class="del" data-ok="${k}">Sí</button><button class="del" style="color:var(--muted)" data-no>No</button></span>`
     :`<button class="del" data-ask="${k}">Quitar</button>`;
-  $("l-cli").innerHTML=clientes.map(c=>{
+  const selSec=(tipo,x)=>`<select class="cli-sec" data-sec-${tipo}="${x.id}" aria-label="Sector de ${esc(x.nombre)}">${Object.entries(SECTORES).map(([k,s])=>`<option value="${k}" ${secDe(x)===k?"selected":""}>${s.icono} ${s.nombre}</option>`).join("")}</select>`;
+  const ordenSec=a=>[...a].sort((x,y)=>secDe(x).localeCompare(secDe(y))*-1||x.nombre.localeCompare(y.nombre));
+  $("l-cli").innerHTML=ordenSec(clientes).map(c=>{
     const ids=Array.isArray(c.productos)?c.productos:[];
-    const marcados=productos.filter(p=>ids.includes(p.id)).length;
-    return `<li class="cli-item"><div class="cli-top"><span>${esc(c.nombre)}</span>${quitar("c"+c.id)}</div>
-      <div class="pchips">${productos.map(p=>`<label class="pchip"><input type="checkbox" id="cp${c.id}-${p.id}" data-cli="${c.id}" data-prod="${p.id}" ${ids.includes(p.id)?"checked":""}>${esc(p.nombre)}</label>`).join("")}</div>
+    const prodsSec=productos.filter(p=>secDe(p)===secDe(c));
+    const marcados=prodsSec.filter(p=>ids.includes(p.id)).length;
+    return `<li class="cli-item"><div class="cli-top"><span>${esc(c.nombre)}</span><span style="display:flex;gap:6px;align-items:center">${selSec("cli",c)}${quitar("c"+c.id)}</span></div>
+      <div class="pchips">${prodsSec.map(p=>`<label class="pchip"><input type="checkbox" id="cp${c.id}-${p.id}" data-cli="${c.id}" data-prod="${p.id}" ${ids.includes(p.id)?"checked":""}>${esc(p.nombre)}</label>`).join("")||`<span class="pnote">No hay productos de este sector todavía.</span>`}</div>
       ${marcados?"":`<span class="pnote">Sin productos marcados: al cargar el pedido se muestran todos.</span>`}</li>`;
   }).join("");
-  $("l-prod").innerHTML=productos.map(p=>`<li><span>${esc(p.nombre)}</span>${quitar("p"+p.id)}</li>`).join("");
+  $("l-prod").innerHTML=ordenSec(productos).map(p=>`<li><span>${esc(p.nombre)}</span><span style="display:flex;gap:6px;align-items:center">${selSec("prod",p)}${quitar("p"+p.id)}</span></li>`).join("");
+  document.querySelectorAll("[data-sec-cli],[data-sec-prod]").forEach(sel=>sel.onchange=async()=>{
+    const esCli=sel.hasAttribute("data-sec-cli"),id=+(sel.dataset.secCli||sel.dataset.secProd);
+    const arr=esCli?clientes:productos,x=arr.find(y=>y.id===id);x.sector=sel.value;renderCfg();
+    const {error}=await sb.from(esCli?"sw_clientes":"sw_productos").update({sector:sel.value}).eq("id",id);
+    toast(error?"No se pudo guardar":`${x.nombre} → ${SECTORES[sel.value].nombre}`);if(error)cargar();
+  });
   document.querySelectorAll("[data-ask]").forEach(b=>b.onclick=()=>{confirmando=b.dataset.ask;renderCfg();});
   document.querySelectorAll("[data-no]").forEach(b=>b.onclick=()=>{confirmando=null;renderCfg();});
   document.querySelectorAll("[data-ok]").forEach(b=>b.onclick=async()=>{
@@ -447,16 +487,16 @@ function renderCfg(){
     if(error){toast("No se pudo guardar. Probá de nuevo.");cargar();}
   });
 }
-function alta(form,input,tabla,tipo){
+function alta(form,input,tabla,tipo,selSector){
   form.addEventListener("submit",async e=>{
     e.preventDefault();const nombre=input.value.trim().toUpperCase();if(!nombre)return;
-    const {error}=await sb.from(tabla).upsert({nombre,activo:true},{onConflict:"nombre"});
+    const {error}=await sb.from(tabla).upsert({nombre,activo:true,sector:selSector.value},{onConflict:"nombre"});
     if(error){toast(`No se pudo agregar el ${tipo}`);return;}
     input.value="";toast("Agregado: "+nombre);cargar();
   });
 }
-alta($("f-cli"),$("in-cli"),"sw_clientes","cliente");
-alta($("f-prod"),$("in-prod"),"sw_productos","producto");
+alta($("f-cli"),$("in-cli"),"sw_clientes","cliente",$("in-cli-sec"));
+alta($("f-prod"),$("in-prod"),"sw_productos","producto",$("in-prod-sec"));
 document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
   sec=b.dataset.sec;
   document.querySelectorAll(".nav button").forEach(x=>x.setAttribute("aria-pressed",x===b));
@@ -466,20 +506,27 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
 
 /* ================= PLANILLA DEL DÍA ================= */
 // Lee las hojas "cargas disco", "cargas devoto" y "cargas fresh". En cada bloque de móvil toma:
-// - PANADERÍA: BLA FIN y NEG FIN (el primer par BLA/NEG con "FIN" debajo; el segundo es Rotisería) → pedido AZULES
-// - Moldes de 300 g: LACT, INTE y S.SAL → un pedido "LACTALES <HOJA>" por hoja
+// - Sandwichería · PANADERÍA: BLA FIN y NEG FIN (primer par BLA/NEG con "FIN" debajo; el segundo es Rotisería) → pedido AZULES
+// - Sandwichería · moldes de 300 g: LACT, INTE y S.SAL → pedido "LACTALES <HOJA>"
+// - Envasado: VIE X8, TOR X4, TOR X6, SES X4, CAT X4, VIE X4, BRIO X4 → pedido "<HOJA>" (DISCO / DEVOTO / FRESH)
 let plan=null;
 const nrm=v=>v==null?"":String(v).trim().toUpperCase();
+const sinEsp=v=>nrm(v).replace(/\s/g,"");
 const num=v=>typeof v==="number"&&isFinite(v)?v:0;
-const CAMPOS=["bla","neg","lact","inte","ssal"];
+const ENVASADO=[["VIEX8","VIE X8"],["TORX4","TOR X4"],["TORX6","TOR X6"],["SESX4","SES X4"],["CATX4","CAT X4"],["VIEX4","VIE X4"],["BRIOX4","BRIO X4"]];
+const SAND=["bla","neg","lact","inte","ssal"];
+const CAMPOS=[...SAND,...ENVASADO.map(([k])=>k)];
 function leerHoja(rows){
-  const res={bla:0,neg:0,lact:0,inte:0,ssal:0,det:[]};let i=0;
+  const res={det:[]};CAMPOS.forEach(c=>res[c]=0);let i=0;
   while(i<rows.length-1){
     const r=rows[i]||[],nx=rows[i+1]||[];
     const cb=r.findIndex((v,j)=>nrm(v).startsWith("BLA")&&nrm(nx[j])==="FIN");
     const cn=r.findIndex((v,j)=>nrm(v).startsWith("NEG")&&nrm(nx[j])==="FIN");
     if(cb<0||cn<0){i++;continue;}
-    const col={bla:cb,neg:cn,lact:nx.findIndex(v=>nrm(v)==="LACT"),inte:nx.findIndex(v=>nrm(v)==="INTE"),ssal:nx.findIndex(v=>nrm(v).replace(/\s/g,"")==="S.SAL")};
+    const col={bla:cb,neg:cn,lact:nx.findIndex(v=>nrm(v)==="LACT"),inte:nx.findIndex(v=>nrm(v)==="INTE"),ssal:nx.findIndex(v=>sinEsp(v)==="S.SAL")};
+    // columnas de envasado: rótulo arriba (VIE, TOR, BRI/BRIO…) + "X n" abajo; se toma la primera aparición
+    ENVASADO.forEach(([k])=>col[k]=-1);
+    r.forEach((v,j)=>{let key=sinEsp(v)+sinEsp(nx[j]);if(key==="BRIX4")key="BRIOX4";if(key in col&&col[key]<0&&ENVASADO.some(([e])=>e===key))col[key]=j;});
     let k=i+2;
     for(;k<rows.length;k++){
       const rr=rows[k]||[];
@@ -498,14 +545,14 @@ function leerPlanilla(wb){
   const buscar=t=>wb.SheetNames.find(n=>{const x=n.toLowerCase();return x.includes("carga")&&x.includes(t);});
   const hojas=[["Disco","disco"],["Devoto","devoto"],["Fresh","fresh"]].map(([titulo,t])=>{
     const nombre=buscar(t);
-    if(!nombre)return {titulo,falta:true,bla:0,neg:0,lact:0,inte:0,ssal:0,det:[]};
+    if(!nombre){const v={titulo,falta:true,det:[]};CAMPOS.forEach(c=>v[c]=0);return v;}
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[nombre],{header:1,raw:true,defval:null});
     return {titulo,nombre,...leerHoja(rows)};
   });
   const sum=c=>hojas.reduce((a,h)=>a+h[c],0);
-  // Pedidos que salen de la planilla
-  const peds=[{cliente:"AZULES",buscar:"AZUL",items:[["BLANCO FINO",sum("bla")],["NEGRO FINO",sum("neg")]]}];
-  hojas.forEach(h=>peds.push({cliente:"LACTALES "+h.titulo.toUpperCase(),items:[["LACTAL",h.lact],["INTEGRAL",h.inte],["SIN SAL",h.ssal]],falta:h.falta}));
+  const peds=[{sector:"sandwicheria",cliente:"AZULES",buscar:"AZUL",items:[["BLANCO FINO",sum("bla")],["NEGRO FINO",sum("neg")]]}];
+  hojas.forEach(h=>peds.push({sector:"sandwicheria",cliente:"LACTALES "+h.titulo.toUpperCase(),items:[["LACTAL",h.lact],["INTEGRAL",h.inte],["SIN SAL",h.ssal]]}));
+  hojas.forEach(h=>peds.push({sector:"envasado",cliente:h.titulo.toUpperCase(),items:ENVASADO.map(([k,n])=>[n,h[k]])}));
   return {hojas,peds};
 }
 $("plan-file").addEventListener("change",async e=>{
@@ -518,69 +565,75 @@ $("plan-file").addEventListener("change",async e=>{
   }catch(_){plan=null;toast("No se pudo leer el archivo. Probá de nuevo.");}
   renderPlan();
 });
-const cliPlan=p=>clientes.find(c=>p.buscar?nrm(c.nombre).includes(p.buscar):nrm(c.nombre)===p.cliente);
+const cliPlan=p=>clientes.find(c=>secDe(c)===p.sector&&(p.buscar?nrm(c.nombre).includes(p.buscar):nrm(c.nombre)===p.cliente));
 function renderPlan(){
   const el=$("plan-res");
   if(!plan){el.hidden=true;el.innerHTML="";return;}
   el.hidden=false;
   const hoy=fechaISO();
   const faltan=plan.hojas.filter(h=>h.falta).map(h=>h.titulo);
+  const tarjetaPlan=(p,pi)=>{
+    const c=cliPlan(p);const ya=c?pedidos.filter(x=>x.cliente_id===c.id&&x.fecha_envio===hoy).length:0;
+    const total=p.items.reduce((a,[,q])=>a+q,0);
+    return `<div class="plan-card${total?"":" vacio"}">
+      <div class="plan-ct">${esc(c?c.nombre:p.cliente)}</div>
+      <div class="plan-qs">${p.items.map(([n,q],ii)=>`<div class="q"><label for="pl${pi}-${ii}">${esc(n)}</label><input id="pl${pi}-${ii}" type="number" inputmode="numeric" min="0" value="${q}" data-pi="${pi}" data-ii="${ii}"></div>`).join("")}</div>
+      ${total?"":`<div class="plan-note">Sin cantidades en la planilla: no se envía.</div>`}
+      ${ya?`<div class="plan-warn">Ya hay ${ya} pedido${ya>1?"s":""} de este cliente hoy. Esto suma uno nuevo.</div>`:""}
+    </div>`;};
+  const grupo=k=>`<div class="plan-group ${SECTORES[k].css}"><div class="plan-gt">${SECTORES[k].icono} Para ${SECTORES[k].nombre}</div>
+    <div class="plan-grid">${plan.peds.map((p,pi)=>p.sector===k?tarjetaPlan(p,pi):"").join("")}</div></div>`;
+  const tabla=(titulo,cols)=>`<details class="plan-det"><summary>${titulo}</summary>
+      <div style="overflow-x:auto"><table class="plan-tbl" style="min-width:${180+cols.length*80}px">
+      <thead><tr><th>Móvil</th>${cols.map(([,n])=>`<th>${n}</th>`).join("")}</tr></thead><tbody>
+      ${plan.hojas.map(h=>`<tr class="sec"><td>Cargas ${h.titulo}</td>${cols.map(([c])=>`<td>${h[c]}</td>`).join("")}</tr>`+h.det.filter(d=>cols.some(([c])=>d[c])).map(d=>`<tr class="sub"><td>${esc(d.lugar)}</td>${cols.map(([c])=>`<td>${d[c]}</td>`).join("")}</tr>`).join("")).join("")}
+      </tbody></table></div></details>`;
   el.innerHTML=`<div class="plan-file">Archivo: <b>${esc(plan.archivo)}</b></div>
     ${faltan.length?`<div class="plan-warn">No encontré la hoja de cargas de: ${faltan.join(", ")}.</div>`:""}
-    <div class="plan-grid">${plan.peds.map((p,pi)=>{
-      const c=cliPlan(p);const ya=c?pedidos.filter(x=>x.cliente_id===c.id&&x.fecha_envio===hoy).length:0;
-      const total=p.items.reduce((a,[,q])=>a+q,0);
-      return `<div class="plan-card${total?"":" vacio"}">
-        <div class="plan-ct">${esc(c?c.nombre:p.cliente)}</div>
-        <div class="plan-qs">${p.items.map(([n,q],ii)=>`<div class="q"><label for="pl${pi}-${ii}">${esc(n)}</label><input id="pl${pi}-${ii}" type="number" inputmode="numeric" min="0" value="${q}" data-pi="${pi}" data-ii="${ii}"></div>`).join("")}</div>
-        ${total?"":`<div class="plan-note">Sin moldes en la planilla: no se envía.</div>`}
-        ${ya?`<div class="plan-warn">Ya hay ${ya} pedido${ya>1?"s":""} de este cliente hoy. Esto suma uno nuevo.</div>`:""}
-      </div>`;}).join("")}</div>
-    <details class="plan-det"><summary>Ver detalle por móvil</summary>
-      <div style="overflow-x:auto"><table class="plan-tbl">
-      <thead><tr><th>Móvil</th><th>Bla fin</th><th>Neg fin</th><th>Lactal</th><th>Integral</th><th>Sin sal</th></tr></thead><tbody>
-      ${plan.hojas.map(h=>`<tr class="sec"><td>Cargas ${h.titulo}</td>${CAMPOS.map(c=>`<td>${h[c]}</td>`).join("")}</tr>`+h.det.map(d=>`<tr class="sub"><td>${esc(d.lugar)}</td>${CAMPOS.map(c=>`<td>${d[c]}</td>`).join("")}</tr>`).join("")).join("")}
-      </tbody></table></div>
-    </details>
-    <div class="row-foot"><button class="btn ghost" id="plan-no">Descartar</button><button class="btn primary" id="plan-ok">Enviar a sandwichería</button></div>`;
+    ${grupo("sandwicheria")}
+    ${tabla("Ver detalle por móvil · Sandwichería",[["bla","Bla fin"],["neg","Neg fin"],["lact","Lactal"],["inte","Integral"],["ssal","Sin sal"]])}
+    ${grupo("envasado")}
+    ${tabla("Ver detalle por móvil · Envasado",ENVASADO)}
+    <div class="row-foot"><button class="btn ghost" id="plan-no">Descartar</button><button class="btn primary" id="plan-ok">Enviar</button></div>`;
+  const actualizarBoton=()=>{
+    const n=k=>plan.peds.filter(p=>p.sector===k&&p.items.some(([,q])=>q>0)).length;
+    const ns=n("sandwicheria"),ne=n("envasado"),tot=ns+ne;
+    $("plan-ok").disabled=!tot;
+    $("plan-ok").textContent=tot?`Enviar ${tot} pedido${tot>1?"s":""} (${ns} Sandwichería · ${ne} Envasado)`:"Nada para enviar";
+  };
   el.querySelectorAll(".plan-qs input").forEach(inp=>inp.addEventListener("input",()=>{
     plan.peds[+inp.dataset.pi].items[+inp.dataset.ii][1]=Math.max(0,parseInt(inp.value,10)||0);
     actualizarBoton();
   }));
-  const actualizarBoton=()=>{
-    const n=plan.peds.filter(p=>p.items.some(([,q])=>q>0)).length;
-    $("plan-ok").disabled=!n;$("plan-ok").textContent=n?`Enviar ${n} pedido${n>1?"s":""} a sandwichería`:"Nada para enviar";
-  };
   actualizarBoton();
   $("plan-no").onclick=()=>{plan=null;renderPlan();};
   $("plan-ok").onclick=e=>enviarPlan(e.currentTarget);
 }
-// Crea los productos y clientes que falten (sin tocar los existentes)
-async function asegurar(tabla,lista,existentes,extra={}){
-  const faltan=lista.filter(n=>!existentes.some(x=>nrm(x.nombre)===n));
-  if(faltan.length){const {error}=await sb.from(tabla).upsert(faltan.map(nombre=>({nombre,activo:true,...extra})),{onConflict:"nombre"});if(error)throw error;}
-}
 async function enviarPlan(btn){
   const aEnviar=plan.peds.filter(p=>p.items.some(([,q])=>q>0));
   if(!aEnviar.length)return;
-  btn.disabled=true;btn.textContent="Enviando…";
+  const txt=btn.textContent;btn.disabled=true;btn.textContent="Enviando…";
   try{
-    const prodNec=[...new Set(aEnviar.flatMap(p=>p.items.filter(([,q])=>q>0).map(([n])=>n)))];
-    await asegurar("sw_productos",prodNec,productos);
-    const {data:prods}=await sb.from("sw_productos").select("*");
+    // productos que falten, en el sector que corresponde
+    let {data:prods,error:e1}=await sb.from("sw_productos").select("*");if(e1)throw e1;
+    const faltanP=[];
+    aEnviar.forEach(p=>p.items.forEach(([n])=>{if(!prods.some(x=>nrm(x.nombre)===n)&&!faltanP.some(f=>f.nombre===n))faltanP.push({nombre:n,activo:true,sector:p.sector});}));
+    if(faltanP.length){const {error}=await sb.from("sw_productos").insert(faltanP);if(error)throw error;({data:prods}=await sb.from("sw_productos").select("*"));}
+    // reactivar productos que estuvieran dados de baja
+    const inact=prods.filter(x=>!x.activo&&aEnviar.some(p=>p.items.some(([n])=>n===nrm(x.nombre))));
+    for(const x of inact)await sb.from("sw_productos").update({activo:true}).eq("id",x.id);
     const pid=n=>(prods.find(x=>nrm(x.nombre)===n)||{}).id;
-    // clientes nuevos de lactales: con sus 3 productos asignados
-    for(const p of aEnviar){
-      if(!cliPlan(p))await asegurar("sw_clientes",[p.cliente],clientes,{productos:p.items.map(([n])=>pid(n)).filter(Boolean)});
-    }
-    const {data:clis}=await sb.from("sw_clientes").select("*").eq("activo",true);
+    // clientes que falten: con su sector y sus productos asignados
+    const faltanC=aEnviar.filter(p=>!cliPlan(p)).map(p=>({nombre:p.cliente,activo:true,sector:p.sector,productos:p.items.map(([n])=>pid(n)).filter(Boolean)}));
+    if(faltanC.length){const {error}=await sb.from("sw_clientes").upsert(faltanC,{onConflict:"nombre"});if(error)throw error;}
+    const {data:clis,error:e2}=await sb.from("sw_clientes").select("*").eq("activo",true);if(e2)throw e2;
     clientes=clis;
-    const filas=aEnviar.map(p=>{const c=cliPlan(p);return {cliente_id:c.id,cliente:c.nombre,fecha_envio:fechaISO(),
+    const filas=aEnviar.map(p=>{const c=cliPlan(p);if(!c)throw new Error("cliente");return {cliente_id:c.id,cliente:c.nombre,fecha_envio:fechaISO(),sector:p.sector,
       items:p.items.filter(([,q])=>q>0).map(([n,q])=>({producto:(prods.find(x=>nrm(x.nombre)===n)||{nombre:n}).nombre,cantidad:q}))};});
     const {error}=await sb.from("sw_pedidos").insert(filas);
     if(error)throw error;
-    plan=null;renderPlan();toast(`Enviado${filas.length>1?"s":""}: ${filas.map(f=>f.cliente).join(", ")}`);cargar();
-  }catch(_){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent="Enviar a sandwichería";}
+    plan=null;renderPlan();toast(`Enviados ${filas.length} pedidos`);cargar();
+  }catch(_){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent=txt;}
 }
 
 /* ================= TABLET ================= */
@@ -626,9 +679,11 @@ function renderTab(){
   $("tab-date").textContent=cap(fechaLarga());
   const hoy=fechaISO();
   // Pantalla principal: todo lo que no está listo (de hoy o pendiente de días anteriores)
-  const pendientes=pedidos.filter(p=>p.estado!=="listo");
+  $("tab-sector").textContent=SECTORES[sectorTab].nombre;
+  const delSector=pedidos.filter(p=>secDe(p)===sectorTab);
+  const pendientes=delSector.filter(p=>p.estado!=="listo");
   // Listos: solo los de hoy (se limpian solos al cambiar el día)
-  const listos=pedidos.filter(p=>p.estado==="listo"&&p.fecha_envio===hoy);
+  const listos=delSector.filter(p=>p.estado==="listo"&&p.fecha_envio===hoy);
   $("n-listos").textContent=listos.length;
   $("tab-main").hidden=verListos;$("tab-listos").hidden=!verListos;
   $("btn-listos").setAttribute("aria-pressed",verListos);
@@ -674,10 +729,20 @@ document.addEventListener("visibilitychange",()=>{if(!document.hidden)pantallaEn
 setInterval(pantallaEncendida,30000);
 
 /* ================= MODO ================= */
-let modo;
+let modo,sectorTab="sandwicheria";
+// Si la app instalada en la tablet de Envasado se abre en #tablet, vuelve a Envasado
+const instalada=matchMedia("(display-mode: fullscreen), (display-mode: standalone)").matches;
+try{if(instalada&&location.hash==="#tablet"&&localStorage.getItem("vistaTablet")==="envasado")history.replaceState(null,"","#envasado");}catch(_){}
 function aplicarModo(){
-  modo=location.hash==="#tablet"?"tablet":"rec";
+  const h=location.hash;
+  modo=(h==="#tablet"||h==="#envasado")?"tablet":"rec";
+  sectorTab=h==="#envasado"?"envasado":"sandwicheria";
+  if(modo==="tablet"){try{localStorage.setItem("vistaTablet",sectorTab);}catch(_){}}
   document.body.classList.toggle("tablet",modo==="tablet");
+  document.body.classList.toggle("env",modo==="tablet"&&sectorTab==="envasado");
+  document.body.classList.toggle("sand",modo==="tablet"&&sectorTab==="sandwicheria");
+  document.title=modo==="tablet"?SECTORES[sectorTab].nombre+" · Amsterdam":"Pedidos · Amsterdam";
+  verListos=false;
   $("view-tab").hidden=modo!=="tablet";$("view-rec").hidden=modo==="tablet";
   render();
 }
