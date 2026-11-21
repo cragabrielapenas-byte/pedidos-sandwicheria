@@ -172,6 +172,26 @@ body.env .tab-title b{color:var(--s-env)} body.sand .tab-title b{color:var(--s-s
 .env-aviso.mod{background:var(--danger);color:#fff}
 .env-aviso button{background:#141310;color:#fff;border:0;border-radius:10px;font:600 16px var(--f-body);padding:10px 18px;cursor:pointer}
 @media (prefers-reduced-motion:reduce){.env-aviso{animation:none}}
+.env-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px}
+.env-tab{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;padding:14px 16px;border-radius:14px;border:3px solid var(--tab-line);background:var(--tab-card);color:#141310;font-family:var(--f-display);font-weight:800;font-size:28px;text-transform:uppercase;cursor:pointer}
+.env-tab.on{background:var(--s-env);border-color:var(--s-env);color:#fff}
+.env-tab .env-n{display:inline-grid;place-items:center;min-width:1.6em;padding:0 8px;height:1.4em;border-radius:99px;background:rgba(0,0,0,.12);font-size:24px}
+.env-tab.on .env-n{background:rgba(255,255,255,.25)}
+.env-tab.alerta{border-color:var(--nuevo);animation:flash 1s ease-in-out infinite}
+.env-nuevo{background:var(--nuevo);color:#141310;border-radius:8px;padding:2px 10px;font-size:20px}
+@media (prefers-reduced-motion:reduce){.env-tab.alerta{animation:none}}
+.env-full{display:grid;gap:14px;grid-template-columns:repeat(var(--n),minmax(0,1fr));min-height:calc(100vh - 200px)}
+.env-full .card{min-height:100%}
+.env-full .card .items{flex:1;justify-content:space-evenly}
+.env-full.grande .card{gap:6px;padding:12px 14px}
+.env-full.grande .card h3{font-size:34px}
+.env-full.grande .card .falta{font-size:18px;padding:4px 10px}
+.env-full.grande .items{gap:2px}
+.env-full.grande .it{min-height:50px;padding:2px 8px 2px 2px}
+.env-full.grande .it b{font-size:44px;min-width:2.6ch;line-height:1}
+.env-full.grande .it .nom{font-size:25px}
+.env-full.grande .it .chk{width:38px;height:38px;font-size:22px}
+@media (max-width:900px){.env-full{grid-template-columns:repeat(auto-fill,minmax(260px,1fr));min-height:0}.env-full .card{min-height:0}}
 .env-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-top:10px}
 .env-st{font-family:var(--f-display);font-weight:800;font-size:22px;text-transform:uppercase;letter-spacing:.03em;color:var(--s-env);margin:14px 0 10px}
 .ptile{background:#fff;border:2px solid var(--tab-line);border-top:12px solid var(--s-env);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:8px;text-align:left;cursor:pointer;color:#141310;font:inherit;box-shadow:0 2px 6px rgba(20,19,16,.06)}
@@ -725,42 +745,25 @@ try{verDesglose=localStorage.getItem("verDesglose")==="1";}catch(_){}
 // Los supermercados de la planilla van cada uno en su tarjeta; el resto se suma en totales por producto
 const SUPERS=["DISCO","DEVOTO","FRESH"];
 const esSuper=p=>SUPERS.includes(nrm(p.cliente));
+let envVista="super";
+try{envVista=localStorage.getItem("envVista")==="otros"?"otros":"super";}catch(_){}
 function renderEnvTotal(delSector,hoy){
-  const todos=delSector.filter(p=>p.estado!=="listo"||p.fecha_envio===hoy);
-  const supers=delSector.filter(p=>esSuper(p)&&p.estado!=="listo").sort((a,b)=>SUPERS.indexOf(nrm(a.cliente))-SUPERS.indexOf(nrm(b.cliente))||a.enviado_at.localeCompare(b.enviado_at));
-  const set=todos.filter(p=>!esSuper(p));
-  const agg={};
-  set.forEach(p=>p.items.forEach(i=>{
-    const a=agg[i.producto]||(agg[i.producto]={nombre:i.producto,total:0,hecho:0,lineas:[]});
-    const ok=p.estado==="listo"||hechos(p).includes(i.producto);
-    a.total+=i.cantidad;if(ok)a.hecho+=i.cantidad;
-    a.lineas.push({cliente:p.cliente,cant:i.cantidad,ok,fecha:p.fecha_envio});
-  }));
-  const pos=n=>{const i=ORDEN_ENV.indexOf(nrm(n));return i<0?99:i;};
-  const lista=Object.values(agg).sort((a,b)=>(a.hecho===a.total)-(b.hecho===b.total)||pos(a.nombre)-pos(b.nombre)||a.nombre.localeCompare(b.nombre));
-  const nuevos=todos.filter(p=>!p.visto);
-  const mods=nuevos.filter(p=>p.modificado);
+  const pend=delSector.filter(p=>p.estado!=="listo");
+  const grupos={
+    super:pend.filter(esSuper).sort((a,b)=>SUPERS.indexOf(nrm(a.cliente))-SUPERS.indexOf(nrm(b.cliente))||a.enviado_at.localeCompare(b.enviado_at)),
+    otros:pend.filter(p=>!esSuper(p)).sort((a,b)=>({nuevo:0,prep:1}[a.estado]-{nuevo:0,prep:1}[b.estado])||a.enviado_at.localeCompare(b.enviado_at))
+  };
+  const lista=grupos[envVista];
+  const max=envVista==="super"?3:4;
+  const n=Math.min(Math.max(lista.length,1),max);
+  const tab=(k,ico,txt)=>{const g=grupos[k],nuevo=k!==envVista&&g.some(p=>!p.visto);
+    return `<button class="env-tab${k===envVista?" on":""}${nuevo?" alerta":""}" data-v="${k}" aria-pressed="${k===envVista}">${ico} ${txt} <span class="env-n">${g.length}</span>${nuevo?`<span class="env-nuevo">¡NUEVO!</span>`:""}</button>`;};
   const el=$("env-main");
-  el.innerHTML=`${nuevos.length?`<div class="env-aviso${mods.length?" mod":""}"><span>${mods.length?"⚠ Pedido modificado":"🔔 Pedido nuevo"}: ${nuevos.map(p=>esc(p.cliente)).join(", ")}</span><button id="env-visto">Visto</button></div>`:""}
-    ${supers.length?`<div class="env-sec"><div class="env-st">🛒 Supermercados</div><div class="cards" id="env-supers"></div></div>`:""}
-    ${supers.length||lista.length?`<div class="env-st" style="margin-top:${supers.length?"22px":"14px"}">🏪 Otros clientes · total por producto</div>`:""}
-    ${lista.length?`<div class="env-grid">${lista.map((a,n)=>{
-      const falta=a.total-a.hecho,ok=falta===0,parc=!ok&&a.hecho>0;
-      const nCli=new Set(a.lineas.map(l=>l.cliente)).size;
-      return `<button class="ptile${ok?" ok":parc?" parcial":""}" data-prod="${n}" aria-pressed="${ok}">
-        <div class="pt-top"><span class="pt-num">${ok?a.total:falta}</span><span class="pt-chk">${ok?"✓":""}</span></div>
-        <div class="pt-nom">${esc(a.nombre)}</div>
-        <div class="pt-sub">${ok?"Listo":parc?`Faltan ${falta} de ${a.total}`:"A preparar"} · ${nCli} cliente${nCli===1?"":"s"}</div>
-        ${verDesglose?`<div class="pt-des">${a.lineas.map(l=>`<div class="${l.ok?"ok":""}"><span>${esc(l.cliente)}${l.fecha!==hoy?" (pendiente)":""}</span><b>${l.cant}</b></div>`).join("")}</div>`:""}
-      </button>`;}).join("")}</div>`
-    :supers.length?`<div class="plan-note" style="font-size:15px">Sin pedidos de otros clientes pendientes.</div>`:`<div class="empty">Todavía no llegaron pedidos hoy.</div>`}`;
-  const cs=$("env-supers");if(cs)supers.forEach(p=>cs.appendChild(tarjeta(p,hoy)));
-  $("env-visto")?.addEventListener("click",async()=>{
-    nuevos.forEach(p=>p.visto=true);renderTab();
-    const {error}=await sb.from("sw_pedidos").update({visto:true}).in("id",nuevos.map(p=>p.id));
-    if(error){toast("No se pudo guardar");cargar();}
-  });
-  el.querySelectorAll(".ptile").forEach(b=>b.onclick=()=>marcarProducto(lista[+b.dataset.prod].nombre,set));
+  el.innerHTML=`<div class="env-tabs">${tab("super","🛒","Supermercados")}${tab("otros","🏪","Otros clientes")}</div>
+    ${lista.length?`<div class="env-full${envVista==="super"?" grande":""}" style="--n:${n}" id="env-cards"></div>`
+      :`<div class="empty">${envVista==="super"?"No hay pedidos de supermercados pendientes.":"No hay pedidos de otros clientes pendientes."}</div>`}`;
+  const cont=$("env-cards");if(cont)lista.forEach(p=>cont.appendChild(tarjeta(p,hoy)));
+  el.querySelectorAll(".env-tab").forEach(b=>b.onclick=()=>{envVista=b.dataset.v;try{localStorage.setItem("envVista",envVista);}catch(_){}renderTab();});
 }
 // Tocar un producto: lo marca hecho en todos los pedidos (o lo desmarca si ya estaba todo hecho)
 async function marcarProducto(nombre,set){
@@ -793,8 +796,7 @@ function renderTab(){
   $("btn-listos").setAttribute("aria-pressed",verListos);
   const esEnv=sectorTab==="envasado";
   $("sand-main").hidden=esEnv;$("env-main").hidden=!esEnv;
-  $("btn-desglose").hidden=!esEnv;$("btn-desglose").setAttribute("aria-pressed",verDesglose);
-  $("btn-desglose").textContent=verDesglose?"📋 Ocultar desglose":"📋 Ver desglose";
+  $("btn-desglose").hidden=true;
   if(esEnv)renderEnvTotal(delSector,hoy);
   const tot={};pendientes.forEach(p=>faltan(p).forEach(i=>tot[i.producto]=(tot[i.producto]||0)+i.cantidad));
   const keys=Object.keys(tot);
