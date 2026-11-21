@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Barlow:wght@400;500;600&display=swap">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/nosleep.js@0.12.0/dist/NoSleep.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#f3f1ec; --surface:#fff; --ink:#1d1b17; --muted:#6e685d; --line:#ddd7cb;
@@ -47,6 +48,22 @@ button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline
 h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase;letter-spacing:.02em}
 .sub{color:var(--muted);margin:2px 0 0;font-size:14px}
 .rows{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.plan{margin-top:14px;border:1.5px dashed var(--accent);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:12px;background:color-mix(in srgb,var(--accent) 5%,var(--surface))}
+.plan-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
+.plan-head b{display:block;font-size:15px}
+.plan-head span{font-size:13px;color:var(--muted)}
+.plan-head label{white-space:nowrap}
+.plan-file{font-size:13px;color:var(--muted)}
+.plan-tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
+.plan-tbl th:first-child,.plan-tbl td:first-child{width:60%}
+.plan-tbl th,.plan-tbl td{padding:5px 8px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
+.plan-tbl th:first-child,.plan-tbl td:first-child{text-align:left}
+.plan-tbl tr.sub td{color:var(--muted);font-size:12px}
+.plan-tbl tr.sec td{font-weight:600}
+.plan-tot{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
+.plan-tot .q{flex:1;min-width:120px}
+.plan-warn{font-size:13px;color:var(--danger);font-weight:600}
+details.plan-det summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}
 .row{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
 .row-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
 .cli{font-weight:600;font-size:16px}
@@ -173,6 +190,14 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
       <section id="sec-pedidos">
         <h2>Pedidos de hoy</h2>
         <p class="sub" id="rec-date"></p>
+        <div class="plan" id="plan">
+          <div class="plan-head">
+            <div><b>Moldes Azules desde la planilla</b><span>Cargá el Excel del día y la app suma los moldes de PANADERÍA (Disco, Devoto y Fresh).</span></div>
+            <label class="btn primary" for="plan-file">Cargar planilla</label>
+            <input type="file" id="plan-file" accept=".xlsx,.xls,.xlsm" hidden>
+          </div>
+          <div id="plan-res" hidden></div>
+        </div>
         <div class="rows" id="rows"></div>
       </section>
       <section id="sec-hist" hidden>
@@ -431,6 +456,93 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
   ["pedidos","hist","cfg"].forEach(s=>$("sec-"+s).hidden=s!==sec);
   confirmando=null;render();
 });
+
+/* ================= PLANILLA AZULES ================= */
+// Lee las hojas "cargas disco", "cargas devoto" y "cargas fresh" y suma, en cada bloque de móvil,
+// las columnas BLA FIN y NEG FIN de PANADERÍA (el primer par BLA/NEG con "FIN" debajo; el segundo es Rotisería).
+let plan=null;
+const nrm=v=>v==null?"":String(v).trim().toUpperCase();
+const num=v=>typeof v==="number"&&isFinite(v)?v:0;
+function leerHoja(rows){
+  const res={bla:0,neg:0,det:[]};let i=0;
+  while(i<rows.length-1){
+    const r=rows[i]||[],nx=rows[i+1]||[];
+    const cb=r.findIndex((v,j)=>nrm(v).startsWith("BLA")&&nrm(nx[j])==="FIN");
+    const cn=r.findIndex((v,j)=>nrm(v).startsWith("NEG")&&nrm(nx[j])==="FIN");
+    if(cb<0||cn<0){i++;continue;}
+    let k=i+2;
+    for(;k<rows.length;k++){
+      const rr=rows[k]||[];
+      if(rr.some(v=>nrm(v)==="PANADERIA"||nrm(v).startsWith("BLA")))break;
+      const b=rr[cb],n=rr[cn];
+      if(typeof b!=="number"&&typeof n!=="number")continue;
+      const bb=num(b),nn=num(n);res.bla+=bb;res.neg+=nn;
+      if(bb||nn)res.det.push({lugar:String(nrm(rr[0])||nrm(r[0])||"—"),bla:bb,neg:nn});
+    }
+    i=k;
+  }
+  return res;
+}
+function leerPlanilla(wb){
+  const buscar=t=>wb.SheetNames.find(n=>{const x=n.toLowerCase();return x.includes("carga")&&x.includes(t);});
+  const hojas=[["Disco","disco"],["Devoto","devoto"],["Fresh","fresh"]].map(([titulo,t])=>{
+    const nombre=buscar(t);
+    if(!nombre)return {titulo,falta:true,bla:0,neg:0,det:[]};
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[nombre],{header:1,raw:true,defval:null});
+    return {titulo,nombre,...leerHoja(rows)};
+  });
+  return {hojas,bla:hojas.reduce((a,h)=>a+h.bla,0),neg:hojas.reduce((a,h)=>a+h.neg,0)};
+}
+$("plan-file").addEventListener("change",async e=>{
+  const f=e.target.files[0];e.target.value="";if(!f)return;
+  try{
+    if(!window.XLSX)throw new Error("lector");
+    const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});
+    plan={archivo:f.name,...leerPlanilla(wb)};
+    if(plan.hojas.every(h=>h.falta)){plan=null;toast("No encontré las hojas de Cargas en ese archivo");}
+  }catch(_){plan=null;toast("No se pudo leer el archivo. Probá de nuevo.");}
+  renderPlan();
+});
+function clienteAzules(){return clientes.find(c=>nrm(c.nombre).includes("AZUL"));}
+function renderPlan(){
+  const el=$("plan-res");
+  if(!plan){el.hidden=true;el.innerHTML="";return;}
+  el.hidden=false;
+  const faltan=plan.hojas.filter(h=>h.falta).map(h=>h.titulo);
+  const cli=clienteAzules();
+  const yaHoy=cli?pedidos.filter(p=>p.cliente_id===cli.id&&p.fecha_envio===fechaISO()).length:0;
+  el.innerHTML=`<div class="plan-file">Archivo: <b>${esc(plan.archivo)}</b></div>
+    ${faltan.length?`<div class="plan-warn">No encontré la hoja de cargas de: ${faltan.join(", ")}.</div>`:""}
+    <div style="overflow-x:auto"><table class="plan-tbl">
+      <thead><tr><th>Hoja</th><th>Blanco fino</th><th>Negro fino</th></tr></thead>
+      <tbody>${plan.hojas.map(h=>`<tr class="sec"><td>Cargas ${h.titulo}</td><td>${h.bla}</td><td>${h.neg}</td></tr>`).join("")}</tbody>
+    </table></div>
+    <details class="plan-det"><summary>Ver detalle por móvil</summary>
+      <div style="overflow-x:auto"><table class="plan-tbl"><tbody>
+      ${plan.hojas.map(h=>h.det.map(d=>`<tr class="sub"><td>${h.titulo} · ${esc(d.lugar)}</td><td>${d.bla}</td><td>${d.neg}</td></tr>`).join("")).join("")||`<tr class="sub"><td colspan="3">Sin moldes cargados</td></tr>`}
+      </tbody></table></div>
+    </details>
+    <div class="plan-tot">
+      <div class="q"><label for="plan-bla">Blanco fino (moldes)</label><input id="plan-bla" type="number" inputmode="numeric" min="0" value="${plan.bla}"></div>
+      <div class="q"><label for="plan-neg">Negro fino (moldes)</label><input id="plan-neg" type="number" inputmode="numeric" min="0" value="${plan.neg}"></div>
+      <button class="btn ghost" id="plan-no">Descartar</button>
+      <button class="btn primary" id="plan-ok">Enviar a sandwichería como pedido de ${esc(cli?cli.nombre:"AZULES")}</button>
+    </div>
+    ${!cli?`<div class="plan-warn">No hay un cliente "AZULES" en Clientes y productos. Agregalo para poder enviar.</div>`:""}
+    ${yaHoy?`<div class="plan-warn">Ojo: ya hay ${yaHoy} pedido${yaHoy>1?"s":""} de ${esc(cli.nombre)} enviado${yaHoy>1?"s":""} hoy. Esto suma uno nuevo.</div>`:""}`;
+  $("plan-ok").disabled=!cli;
+  $("plan-no").onclick=()=>{plan=null;renderPlan();};
+  $("plan-ok").onclick=async e=>{
+    const btn=e.currentTarget,bla=parseInt($("plan-bla").value,10)||0,neg=parseInt($("plan-neg").value,10)||0;
+    const nom=t=>(productos.find(p=>nrm(p.nombre)===t)||{nombre:t}).nombre;
+    const items=[];if(bla>0)items.push({producto:nom("BLANCO FINO"),cantidad:bla});if(neg>0)items.push({producto:nom("NEGRO FINO"),cantidad:neg});
+    if(!items.length){toast("No hay moldes para enviar");return;}
+    btn.disabled=true;btn.textContent="Enviando…";
+    const {error}=await sb.from("sw_pedidos").insert({cliente_id:cli.id,cliente:cli.nombre,items,fecha_envio:fechaISO()});
+    if(error){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent="Enviar";return;}
+    plan=null;renderPlan();toast("Enviado: "+cli.nombre);cargar();
+  };
+}
 
 /* ================= TABLET ================= */
 let verListos=false;
