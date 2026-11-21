@@ -55,13 +55,17 @@ h2{font-family:var(--f-display);font-size:26px;margin:0;text-transform:uppercase
 .plan-head label{white-space:nowrap}
 .plan-file{font-size:13px;color:var(--muted)}
 .plan-tbl{width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed}
-.plan-tbl th:first-child,.plan-tbl td:first-child{width:60%}
+.plan-tbl th:first-child,.plan-tbl td:first-child{width:34%}
 .plan-tbl th,.plan-tbl td{padding:5px 8px;border-top:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}
 .plan-tbl th:first-child,.plan-tbl td:first-child{text-align:left}
 .plan-tbl tr.sub td{color:var(--muted);font-size:12px}
 .plan-tbl tr.sec td{font-weight:600}
-.plan-tot{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
-.plan-tot .q{flex:1;min-width:120px}
+.plan-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px}
+.plan-card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.plan-card.vacio{opacity:.55}
+.plan-ct{font-weight:700;font-size:14px}
+.plan-qs{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:6px}
+.plan-note{font-size:12px;color:var(--muted)}
 .plan-warn{font-size:13px;color:var(--danger);font-weight:600}
 details.plan-det summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--accent)}
 .row{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px}
@@ -192,7 +196,7 @@ body.tablet{background:#fff;color:#141310;padding-top:max(16px,env(safe-area-ins
         <p class="sub" id="rec-date"></p>
         <div class="plan" id="plan">
           <div class="plan-head">
-            <div><b>Moldes Azules desde la planilla</b><span>Cargá el Excel del día y la app suma los moldes de PANADERÍA (Disco, Devoto y Fresh).</span></div>
+            <div><b>Cargar planilla del día</b><span>La app calcula los moldes de AZULES y los LACTALES de Disco, Devoto y Fresh, y los manda como pedidos.</span></div>
             <label class="btn primary" for="plan-file">Cargar planilla</label>
             <input type="file" id="plan-file" accept=".xlsx,.xls,.xlsm" hidden>
           </div>
@@ -457,27 +461,31 @@ document.querySelectorAll(".nav button").forEach(b=>b.onclick=()=>{
   confirmando=null;render();
 });
 
-/* ================= PLANILLA AZULES ================= */
-// Lee las hojas "cargas disco", "cargas devoto" y "cargas fresh" y suma, en cada bloque de móvil,
-// las columnas BLA FIN y NEG FIN de PANADERÍA (el primer par BLA/NEG con "FIN" debajo; el segundo es Rotisería).
+/* ================= PLANILLA DEL DÍA ================= */
+// Lee las hojas "cargas disco", "cargas devoto" y "cargas fresh". En cada bloque de móvil toma:
+// - PANADERÍA: BLA FIN y NEG FIN (el primer par BLA/NEG con "FIN" debajo; el segundo es Rotisería) → pedido AZULES
+// - Moldes de 300 g: LACT, INTE y S.SAL → un pedido "LACTALES <HOJA>" por hoja
 let plan=null;
 const nrm=v=>v==null?"":String(v).trim().toUpperCase();
 const num=v=>typeof v==="number"&&isFinite(v)?v:0;
+const CAMPOS=["bla","neg","lact","inte","ssal"];
 function leerHoja(rows){
-  const res={bla:0,neg:0,det:[]};let i=0;
+  const res={bla:0,neg:0,lact:0,inte:0,ssal:0,det:[]};let i=0;
   while(i<rows.length-1){
     const r=rows[i]||[],nx=rows[i+1]||[];
     const cb=r.findIndex((v,j)=>nrm(v).startsWith("BLA")&&nrm(nx[j])==="FIN");
     const cn=r.findIndex((v,j)=>nrm(v).startsWith("NEG")&&nrm(nx[j])==="FIN");
     if(cb<0||cn<0){i++;continue;}
+    const col={bla:cb,neg:cn,lact:nx.findIndex(v=>nrm(v)==="LACT"),inte:nx.findIndex(v=>nrm(v)==="INTE"),ssal:nx.findIndex(v=>nrm(v).replace(/\s/g,"")==="S.SAL")};
     let k=i+2;
     for(;k<rows.length;k++){
       const rr=rows[k]||[];
       if(rr.some(v=>nrm(v)==="PANADERIA"||nrm(v).startsWith("BLA")))break;
-      const b=rr[cb],n=rr[cn];
-      if(typeof b!=="number"&&typeof n!=="number")continue;
-      const bb=num(b),nn=num(n);res.bla+=bb;res.neg+=nn;
-      if(bb||nn)res.det.push({lugar:String(nrm(rr[0])||nrm(r[0])||"—"),bla:bb,neg:nn});
+      const vals={};CAMPOS.forEach(c=>vals[c]=col[c]>=0?rr[col[c]]:null);
+      if(!CAMPOS.some(c=>typeof vals[c]==="number"))continue;
+      const d={lugar:String(nrm(rr[0])||nrm(r[0])||"—")};
+      CAMPOS.forEach(c=>{d[c]=num(vals[c]);res[c]+=d[c];});
+      if(CAMPOS.some(c=>d[c]))res.det.push(d);
     }
     i=k;
   }
@@ -487,11 +495,15 @@ function leerPlanilla(wb){
   const buscar=t=>wb.SheetNames.find(n=>{const x=n.toLowerCase();return x.includes("carga")&&x.includes(t);});
   const hojas=[["Disco","disco"],["Devoto","devoto"],["Fresh","fresh"]].map(([titulo,t])=>{
     const nombre=buscar(t);
-    if(!nombre)return {titulo,falta:true,bla:0,neg:0,det:[]};
+    if(!nombre)return {titulo,falta:true,bla:0,neg:0,lact:0,inte:0,ssal:0,det:[]};
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[nombre],{header:1,raw:true,defval:null});
     return {titulo,nombre,...leerHoja(rows)};
   });
-  return {hojas,bla:hojas.reduce((a,h)=>a+h.bla,0),neg:hojas.reduce((a,h)=>a+h.neg,0)};
+  const sum=c=>hojas.reduce((a,h)=>a+h[c],0);
+  // Pedidos que salen de la planilla
+  const peds=[{cliente:"AZULES",buscar:"AZUL",items:[["BLANCO FINO",sum("bla")],["NEGRO FINO",sum("neg")]]}];
+  hojas.forEach(h=>peds.push({cliente:"LACTALES "+h.titulo.toUpperCase(),items:[["LACTAL",h.lact],["INTEGRAL",h.inte],["SIN SAL",h.ssal]],falta:h.falta}));
+  return {hojas,peds};
 }
 $("plan-file").addEventListener("change",async e=>{
   const f=e.target.files[0];e.target.value="";if(!f)return;
@@ -503,45 +515,69 @@ $("plan-file").addEventListener("change",async e=>{
   }catch(_){plan=null;toast("No se pudo leer el archivo. Probá de nuevo.");}
   renderPlan();
 });
-function clienteAzules(){return clientes.find(c=>nrm(c.nombre).includes("AZUL"));}
+const cliPlan=p=>clientes.find(c=>p.buscar?nrm(c.nombre).includes(p.buscar):nrm(c.nombre)===p.cliente);
 function renderPlan(){
   const el=$("plan-res");
   if(!plan){el.hidden=true;el.innerHTML="";return;}
   el.hidden=false;
+  const hoy=fechaISO();
   const faltan=plan.hojas.filter(h=>h.falta).map(h=>h.titulo);
-  const cli=clienteAzules();
-  const yaHoy=cli?pedidos.filter(p=>p.cliente_id===cli.id&&p.fecha_envio===fechaISO()).length:0;
   el.innerHTML=`<div class="plan-file">Archivo: <b>${esc(plan.archivo)}</b></div>
     ${faltan.length?`<div class="plan-warn">No encontré la hoja de cargas de: ${faltan.join(", ")}.</div>`:""}
-    <div style="overflow-x:auto"><table class="plan-tbl">
-      <thead><tr><th>Hoja</th><th>Blanco fino</th><th>Negro fino</th></tr></thead>
-      <tbody>${plan.hojas.map(h=>`<tr class="sec"><td>Cargas ${h.titulo}</td><td>${h.bla}</td><td>${h.neg}</td></tr>`).join("")}</tbody>
-    </table></div>
+    <div class="plan-grid">${plan.peds.map((p,pi)=>{
+      const c=cliPlan(p);const ya=c?pedidos.filter(x=>x.cliente_id===c.id&&x.fecha_envio===hoy).length:0;
+      const total=p.items.reduce((a,[,q])=>a+q,0);
+      return `<div class="plan-card${total?"":" vacio"}">
+        <div class="plan-ct">${esc(c?c.nombre:p.cliente)}</div>
+        <div class="plan-qs">${p.items.map(([n,q],ii)=>`<div class="q"><label for="pl${pi}-${ii}">${esc(n)}</label><input id="pl${pi}-${ii}" type="number" inputmode="numeric" min="0" value="${q}" data-pi="${pi}" data-ii="${ii}"></div>`).join("")}</div>
+        ${total?"":`<div class="plan-note">Sin moldes en la planilla: no se envía.</div>`}
+        ${ya?`<div class="plan-warn">Ya hay ${ya} pedido${ya>1?"s":""} de este cliente hoy. Esto suma uno nuevo.</div>`:""}
+      </div>`;}).join("")}</div>
     <details class="plan-det"><summary>Ver detalle por móvil</summary>
-      <div style="overflow-x:auto"><table class="plan-tbl"><tbody>
-      ${plan.hojas.map(h=>h.det.map(d=>`<tr class="sub"><td>${h.titulo} · ${esc(d.lugar)}</td><td>${d.bla}</td><td>${d.neg}</td></tr>`).join("")).join("")||`<tr class="sub"><td colspan="3">Sin moldes cargados</td></tr>`}
+      <div style="overflow-x:auto"><table class="plan-tbl">
+      <thead><tr><th>Móvil</th><th>Bla fin</th><th>Neg fin</th><th>Lactal</th><th>Integral</th><th>Sin sal</th></tr></thead><tbody>
+      ${plan.hojas.map(h=>`<tr class="sec"><td>Cargas ${h.titulo}</td>${CAMPOS.map(c=>`<td>${h[c]}</td>`).join("")}</tr>`+h.det.map(d=>`<tr class="sub"><td>${esc(d.lugar)}</td>${CAMPOS.map(c=>`<td>${d[c]}</td>`).join("")}</tr>`).join("")).join("")}
       </tbody></table></div>
     </details>
-    <div class="plan-tot">
-      <div class="q"><label for="plan-bla">Blanco fino (moldes)</label><input id="plan-bla" type="number" inputmode="numeric" min="0" value="${plan.bla}"></div>
-      <div class="q"><label for="plan-neg">Negro fino (moldes)</label><input id="plan-neg" type="number" inputmode="numeric" min="0" value="${plan.neg}"></div>
-      <button class="btn ghost" id="plan-no">Descartar</button>
-      <button class="btn primary" id="plan-ok">Enviar a sandwichería como pedido de ${esc(cli?cli.nombre:"AZULES")}</button>
-    </div>
-    ${!cli?`<div class="plan-warn">No hay un cliente "AZULES" en Clientes y productos. Agregalo para poder enviar.</div>`:""}
-    ${yaHoy?`<div class="plan-warn">Ojo: ya hay ${yaHoy} pedido${yaHoy>1?"s":""} de ${esc(cli.nombre)} enviado${yaHoy>1?"s":""} hoy. Esto suma uno nuevo.</div>`:""}`;
-  $("plan-ok").disabled=!cli;
-  $("plan-no").onclick=()=>{plan=null;renderPlan();};
-  $("plan-ok").onclick=async e=>{
-    const btn=e.currentTarget,bla=parseInt($("plan-bla").value,10)||0,neg=parseInt($("plan-neg").value,10)||0;
-    const nom=t=>(productos.find(p=>nrm(p.nombre)===t)||{nombre:t}).nombre;
-    const items=[];if(bla>0)items.push({producto:nom("BLANCO FINO"),cantidad:bla});if(neg>0)items.push({producto:nom("NEGRO FINO"),cantidad:neg});
-    if(!items.length){toast("No hay moldes para enviar");return;}
-    btn.disabled=true;btn.textContent="Enviando…";
-    const {error}=await sb.from("sw_pedidos").insert({cliente_id:cli.id,cliente:cli.nombre,items,fecha_envio:fechaISO()});
-    if(error){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent="Enviar";return;}
-    plan=null;renderPlan();toast("Enviado: "+cli.nombre);cargar();
+    <div class="row-foot"><button class="btn ghost" id="plan-no">Descartar</button><button class="btn primary" id="plan-ok">Enviar a sandwichería</button></div>`;
+  el.querySelectorAll(".plan-qs input").forEach(inp=>inp.addEventListener("input",()=>{
+    plan.peds[+inp.dataset.pi].items[+inp.dataset.ii][1]=Math.max(0,parseInt(inp.value,10)||0);
+    actualizarBoton();
+  }));
+  const actualizarBoton=()=>{
+    const n=plan.peds.filter(p=>p.items.some(([,q])=>q>0)).length;
+    $("plan-ok").disabled=!n;$("plan-ok").textContent=n?`Enviar ${n} pedido${n>1?"s":""} a sandwichería`:"Nada para enviar";
   };
+  actualizarBoton();
+  $("plan-no").onclick=()=>{plan=null;renderPlan();};
+  $("plan-ok").onclick=e=>enviarPlan(e.currentTarget);
+}
+// Crea los productos y clientes que falten (sin tocar los existentes)
+async function asegurar(tabla,lista,existentes,extra={}){
+  const faltan=lista.filter(n=>!existentes.some(x=>nrm(x.nombre)===n));
+  if(faltan.length){const {error}=await sb.from(tabla).upsert(faltan.map(nombre=>({nombre,activo:true,...extra})),{onConflict:"nombre"});if(error)throw error;}
+}
+async function enviarPlan(btn){
+  const aEnviar=plan.peds.filter(p=>p.items.some(([,q])=>q>0));
+  if(!aEnviar.length)return;
+  btn.disabled=true;btn.textContent="Enviando…";
+  try{
+    const prodNec=[...new Set(aEnviar.flatMap(p=>p.items.filter(([,q])=>q>0).map(([n])=>n)))];
+    await asegurar("sw_productos",prodNec,productos);
+    const {data:prods}=await sb.from("sw_productos").select("*");
+    const pid=n=>(prods.find(x=>nrm(x.nombre)===n)||{}).id;
+    // clientes nuevos de lactales: con sus 3 productos asignados
+    for(const p of aEnviar){
+      if(!cliPlan(p))await asegurar("sw_clientes",[p.cliente],clientes,{productos:p.items.map(([n])=>pid(n)).filter(Boolean)});
+    }
+    const {data:clis}=await sb.from("sw_clientes").select("*").eq("activo",true);
+    clientes=clis;
+    const filas=aEnviar.map(p=>{const c=cliPlan(p);return {cliente_id:c.id,cliente:c.nombre,fecha_envio:fechaISO(),
+      items:p.items.filter(([,q])=>q>0).map(([n,q])=>({producto:(prods.find(x=>nrm(x.nombre)===n)||{nombre:n}).nombre,cantidad:q}))};});
+    const {error}=await sb.from("sw_pedidos").insert(filas);
+    if(error)throw error;
+    plan=null;renderPlan();toast(`Enviado${filas.length>1?"s":""}: ${filas.map(f=>f.cliente).join(", ")}`);cargar();
+  }catch(_){toast("No se pudo enviar. Probá de nuevo.");btn.disabled=false;btn.textContent="Enviar a sandwichería";}
 }
 
 /* ================= TABLET ================= */
