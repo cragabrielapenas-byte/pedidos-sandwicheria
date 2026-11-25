@@ -563,9 +563,11 @@ function renderHist(){
   $("days").querySelectorAll("button").forEach(b=>b.onclick=()=>{diaHist=+b.dataset.d;renderHist();});
   const lista=pedidos.filter(p=>p.fecha_envio===fechaISO(-diaHist));
   $("hsum").innerHTML=lista.length?Object.entries(SECTORES).map(([k,s])=>{const l=lista.filter(p=>secDe(p)===k);return `<span>${s.icono} <b>${l.length}</b> pedido${l.length===1?"":"s"} de ${s.nombre}</span>`;}).join(""):"";
-  const linea=p=>{const ev=[["Enviado",p.enviado_at,"env"],["Visto",p.visto_at,"vis"],["Preparando",p.prep_at,"prep"],["Parcial",p.parcial_at,"parcial"],["Listo",p.listo_at,"listo"]].filter(([,t])=>t);
+  // Pedidos marcados antes de guardar horarios: se usa la última actualización como hora de "listo"
+  const listoAt=p=>p.estado==="listo"?(p.listo_at||p.updated_at):null;
+  const linea=p=>{const ev=[["Enviado",p.enviado_at,"env"],["Visto",p.visto_at,"vis"],["Preparando",p.prep_at,"prep"],["Parcial",p.parcial_at,"parcial"],["Listo",listoAt(p),"listo"]].filter(([,t])=>t);
     return `<div class="tl">${ev.map(([n,t,c])=>`<span class="tl-e ${c}"><b>${n}</b> ${hora(t)}</span>`).join('<span class="tl-f">→</span>')}</div>`;};
-  $("hlist").innerHTML=lista.length?lista.map(p=>`<div class="hrow"><span class="time">${hora(p.enviado_at)}</span><span class="who">${esc(p.cliente)} ${stag(p)}</span><span class="chip ${claseEst(p)}">${etiqueta(p)}</span><span class="what">${esc(txtItems(p.items))}${esParcial(p)?` · falta ${esc(txtItems(faltan(p)))}`:""}${linea(p)}</span></div>`).join("")
+  $("hlist").innerHTML=lista.length?lista.map(p=>`<div class="hrow"><span class="time">${hora(p.enviado_at)}</span><span class="who">${esc(p.cliente)} ${stag(p)}</span><span class="chip ${claseEst(p)}">${etiqueta(p)}${listoAt(p)?` ${hora(listoAt(p))}`:""}</span><span class="what">${esc(txtItems(p.items))}${esParcial(p)?` · falta ${esc(txtItems(faltan(p)))}`:""}${linea(p)}</span></div>`).join("")
     :`<div class="hempty">Ese día no se pasaron pedidos.</div>`;
 }
 
